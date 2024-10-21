@@ -1,6 +1,7 @@
-# meduzzen-be
+# Meduzzen Backend Internship
 [![Python](https://img.shields.io/badge/-Python-%233776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=0a0a0a)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white&labelColor=0a0a0a)](https://fastapi.tiangolo.com/)
+[![Pytest](https://img.shields.io/badge/Pytest-0A9B38?style=for-the-badge&logo=pytest&logoColor=white&labelColor=0a0a0a)](https://pytest.org/)
 
 # Generic Setup
 ***
@@ -16,7 +17,7 @@ This will create a virtual environment and install all dependencies specified in
 To run the application in production:
 1. Install dependencies (if not done already):
 ```
-pip install -r requirements.txt
+poetry install
 ```
 2. Run the application:
 ```
@@ -28,7 +29,7 @@ Visit http://{SERVER_HOST}:{SERVER_PORT}}/ in your web browser to access the app
 To run the application in development mode:
 1. Install development dependencies:
 ```
-poetry install
+poetry install --dev
 ```
 2. Run the application with auto-reload:
 ```
