@@ -4,5 +4,5 @@ def test_read_healthcheck(client):
     assert response.json() == {
         "status_code": 200,
         "detail": "ok",
-        "result": "working"
+        "result": "working",
     }

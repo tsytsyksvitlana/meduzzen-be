@@ -1,12 +1,13 @@
-import os
-
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 
 class FastAPIConfig(BaseSettings):
-    server_host: str = os.getenv("SERVER_HOST", "localhost")
-    server_port: int = int(os.getenv("SERVER_PORT", 8000))
-    reload: bool = os.getenv("RELOAD", True)
+    server_host: str = "localhost"
+    server_port: int = 8000
+    reload: bool = True
+
+    model_config = ConfigDict()
 
 
 config = FastAPIConfig()

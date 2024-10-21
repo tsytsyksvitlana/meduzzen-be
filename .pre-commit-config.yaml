@@ -1,5 +1,5 @@
 repos:
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 'v0.4.5'
     hooks:
       - id: ruff
@@ -13,7 +13,7 @@ repos:
     rev: 7.1.1
     hooks:
       - id: flake8
-        args: ["--max-line-length=80"]
+        args: ["--max-line-length=80", "--extend-ignore=E501"]
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.15.2
     hooks:
