@@ -20,7 +20,7 @@ pip install -r requirements.txt
 ```
 2. Run the application:
 ```
-poetry run uvicorn main:app
+poetry run uvicorn web_app.main:app
 ```
 Visit http://{SERVER_HOST}:{SERVER_PORT}}/ in your web browser to access the application.
 # Development
@@ -32,7 +32,7 @@ poetry install
 ```
 2. Run the application with auto-reload:
 ```
-poetry run uvicorn main:app --reload
+poetry run uvicorn web_app.main:app --reload
 ```
 Visit http://localhost:8000/ in your web browser to access the application.
 ### To run tests
