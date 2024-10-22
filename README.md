@@ -93,6 +93,7 @@ docker exec -it -w /code/web_app meduzzen-be-fastapi-1 /bin/sh
 PYTHONPATH=/code alembic revision --autogenerate -m "message"
 ```
 ```
+export PYTHONPATH=/code
 alembic upgrade head
 ```
 ```
