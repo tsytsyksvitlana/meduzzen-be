@@ -1,4 +1,5 @@
 from redis.asyncio import Redis
+
 from web_app.db.db_config import settings
 
 

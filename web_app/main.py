@@ -53,6 +53,5 @@ if __name__ == "__main__":
         "web_app.main:app",
         host=config.server_host,
         port=config.server_port,
-        reload=False,
-        workers=2
+        reload=config.reload,
     )
