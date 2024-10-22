@@ -22,7 +22,8 @@ services:
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     volumes:
-      - .:/code
+      - .:/app
+    command: ["python", "-m", "web_app.main"]
     depends_on:
       - postgres
       - redis
