@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.idea/
+.vscode/
+Dockerfile.tests
+Dockerfile.prod
+.dockerignore
+.git/
+.gitignore
+.pre-commit-config.yaml
+README.md

@@ -1,6 +1,7 @@
 # Meduzzen Backend Internship
 [![Python](https://img.shields.io/badge/-Python-%233776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=0a0a0a)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white&labelColor=0a0a0a)](https://fastapi.tiangolo.com/)
+[![Pydantic](https://img.shields.io/badge/Pydantic-1B5B25?style=for-the-badge&logo=pydantic&logoColor=white&labelColor=0a0a0a)](https://pydantic-docs.helpmanual.io/)
 [![Pytest](https://img.shields.io/badge/Pytest-0A9B38?style=for-the-badge&logo=pytest&logoColor=white&labelColor=0a0a0a)](https://pytest.org/)
 
 # Generic Setup
@@ -17,25 +18,48 @@ This will create a virtual environment and install all dependencies specified in
 To run the application in production:
 1. Install dependencies (if not done already):
 ```
-poetry install
+poetry install --without dev --no-root
 ```
 2. Run the application:
 ```
 poetry run uvicorn web_app.main:app
 ```
 Visit http://{SERVER_HOST}:{SERVER_PORT}}/ in your web browser to access the application.
+3. Run in Docker:
+```
+docker build -f Dockerfile.prod -t meduzzen_be .
+docker run -p 8000:8000 --env-file .env meduzzen_be
+```
+To stop use
+```
+docker stop fastapi_container
+```
 # Development
 ***
 To run the application in development mode:
 1. Install development dependencies:
 ```
-poetry install --dev
+poetry install --with dev
 ```
 2. Run the application with auto-reload:
 ```
 poetry run uvicorn web_app.main:app --reload
 ```
 Visit http://localhost:8000/ in your web browser to access the application.
+3. Run app in Docker:
+```
+docker build -f Dockerfile.prod -t meduzzen_be .
+docker run -p 8000:8000 --env-file .env meduzzen_be
+```
+4. Run tests in Docker:
+```
+docker build -f Dockerfile.test -t meduzzen_be_test .
+docker run --env-file .env meduzzen_be_test
+```
+To stop use
+```
+docker stop fastapi_container
+```
 ### To run tests
 ```
 poetry run pytest
