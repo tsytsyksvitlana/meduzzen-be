@@ -18,9 +18,10 @@ FROM python:3.12-slim AS runtime
 ENV VIRTUAL_ENV=/code/.venv \
     PATH="/code/.venv/bin:$PATH"
 
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+WORKDIR /code
 
-COPY web_app ./web_app
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY web_app /code/web_app
 
 RUN apt-get update && apt-get install -y python3-dotenv && rm -rf /var/lib/apt/lists/*
 
