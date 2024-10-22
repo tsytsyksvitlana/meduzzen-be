@@ -23,8 +23,6 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 COPY web_app ./web_app
 COPY .env ./.env
 
-RUN apt-get update && apt-get install -y \
-    python3-dotenv \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3-dotenv && rm -rf /var/lib/apt/lists/*
 
 ENTRYPOINT ["sh", "-c", "export $(cat .env | xargs) && uvicorn web_app.main:app --host 0.0.0.0 --port $SERVER_PORT"]

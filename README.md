@@ -3,6 +3,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi&logoColor=white&labelColor=0a0a0a)](https://fastapi.tiangolo.com/)
 [![Pydantic](https://img.shields.io/badge/Pydantic-1B5B25?style=for-the-badge&logo=pydantic&logoColor=white&labelColor=0a0a0a)](https://pydantic-docs.helpmanual.io/)
 [![Pytest](https://img.shields.io/badge/Pytest-0A9B38?style=for-the-badge&logo=pytest&logoColor=white&labelColor=0a0a0a)](https://pytest.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white&labelColor=0a0a0a)](https://www.docker.com/)
 
 # Generic Setup
 ***
@@ -34,6 +35,18 @@ To stop use
 ```
 docker stop fastapi_container
 ```
+5. Create a docker network
+```
+docker network create home
+```
+6. Run in docker compose in detached mode
+```
+docker compose up -d --build
+```
+7. To stop the running services:
+```
+docker compose down
+```
 # Development
 ***
 To run the application in development mode:
@@ -59,6 +72,18 @@ docker run --env-file .env meduzzen_be_test
 To stop use
 ```
 docker stop fastapi_container
+```
+5. Create a docker network
+```
+docker network create home
+```
+6. Run in docker compose in detached mode
+```
+docker compose up -d --build
+```
+7. To stop the running services:
+```
+docker compose down
 ```
 ### To run tests
 ```
