@@ -1,11 +1,10 @@
-import aioredis
-
+from redis.asyncio import Redis
 from web_app.db.db_config import settings
 
 
 class RedisHelper:
     def __init__(self, host: str, port: int) -> None:
-        self.redis = aioredis.from_url(f"redis://{host}:{port}", decode_responses=True)
+        self.redis = Redis(host=host, port=port, decode_responses=True)
 
     async def set(self, key: str, value: str) -> None:
         await self.redis.set(key, value)

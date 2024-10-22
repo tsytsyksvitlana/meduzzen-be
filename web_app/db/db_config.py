@@ -10,7 +10,9 @@ class Settings(BaseSettings):
     POSTGRES_PORT: str
     REDIS_HOST: str
     REDIS_PORT: int
-    ENV_MODE: str
+    SERVER_HOST: str
+    SERVER_PORT: int
+    RELOAD: bool
 
     echo: bool = True
 
