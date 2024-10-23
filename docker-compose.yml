@@ -22,13 +22,15 @@ services:
     ports:
       - "${SERVER_PORT}:${SERVER_PORT}"
     volumes:
-      - .:/app
+      - ./web_app:/code/web_app
     command: ["python", "-m", "web_app.main"]
     depends_on:
       - postgres
       - redis
     env_file:
       - ./.env
+    environment:
+      PYTHONPATH: /code
     networks:
       - home
 
