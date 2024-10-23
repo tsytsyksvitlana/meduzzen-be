@@ -2,12 +2,14 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.db.redis_helper import redis_helper
+from web_app.logging.logger import setup_logger
 from web_app.routers.healthcheck import router as router
 
 logger = logging.getLogger(__name__)
@@ -16,17 +18,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up...")
-
-    await postgres_helper.engine.connect()
-    logger.info("PostgreSQL connected.")
+    setup_logger(settings.fastapi.ENV_MODE)
 
     await redis_helper.redis.ping()
     logger.info("Redis connected.")
 
     yield
-
-    await postgres_helper.dispose()
-    logger.info("PostgreSQL connection closed.")
 
     await redis_helper.close()
     logger.info("Redis connection closed.")
@@ -46,6 +43,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def exception_handler(
+        request: Request,
+        exc: Exception
+) -> JSONResponse:
+    """
+    Handles unhandled exceptions and logs the error details.
+    Returns a 500 response with an error message.
+    """
+    logger.error(f"Unhandled error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(
+        request: Request,
+        exc: HTTPException
+) -> JSONResponse:
+    """
+    Handles HTTP exceptions and logs the error details.
+    Returns the appropriate response based on the HTTP error.
+    """
+    logger.error(f"HTTP error: {exc.detail}", exc_info=True)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
 
 
 if __name__ == "__main__":
