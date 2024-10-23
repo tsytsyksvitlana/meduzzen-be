@@ -1,6 +1,6 @@
 from redis.asyncio import Redis
 
-from web_app.db.db_config import settings
+from web_app.config.settings import settings
 
 
 class RedisHelper:
@@ -17,4 +17,7 @@ class RedisHelper:
         await self.redis.close()
 
 
-redis_helper = RedisHelper(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
+redis_helper = RedisHelper(
+    host=settings.redis.REDIS_HOST,
+    port=settings.redis.REDIS_PORT
+)
