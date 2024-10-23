@@ -3,11 +3,8 @@ from pydantic_settings import BaseSettings
 
 
 class FastAPIConfig(BaseSettings):
-    server_host: str = "localhost"
-    server_port: int = 8000
-    reload: bool = True
+    SERVER_HOST: str = "localhost"
+    SERVER_PORT: int = 8000
+    SERVER_RELOAD: bool = True
 
     model_config = ConfigDict()
-
-
-config = FastAPIConfig()

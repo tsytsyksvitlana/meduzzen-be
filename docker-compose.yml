@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: "postgres:alpine"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./.env
+    networks:
+      - home
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    volumes:
+      - .:/app
+    command: ["python", "-m", "web_app.main"]
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.env
+    networks:
+      - home
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    networks:
+      - home
+
+volumes:
+  postgres_data:
+
+networks:
+  home:
+    driver: bridge
