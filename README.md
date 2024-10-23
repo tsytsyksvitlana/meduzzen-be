@@ -85,6 +85,20 @@ docker compose up -d --build
 ```
 docker compose down
 ```
+### Migrations
+```
+docker exec -it -w /code/web_app meduzzen-be-fastapi-1 /bin/sh
+```
+```
+PYTHONPATH=/code alembic revision --autogenerate -m "message"
+```
+```
+export PYTHONPATH=/code
+alembic upgrade head
+```
+```
+exit
+```
 ### To run tests
 ```
 poetry run pytest
