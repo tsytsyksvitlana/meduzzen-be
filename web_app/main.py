@@ -7,7 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
-from web_app.db.postgres_helper import postgres_helper
 from web_app.db.redis_helper import redis_helper
 from web_app.logging.logger import setup_logger
 from web_app.routers.healthcheck import router as router
