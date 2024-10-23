@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine
 )
 
-from web_app.db.db_config import settings
+from web_app.config.settings import settings
 
 
 class PostgresHelper:
@@ -43,4 +43,7 @@ class PostgresHelper:
             yield session
 
 
-postgres_helper = PostgresHelper(url=settings.url, echo=settings.echo)
+postgres_helper = PostgresHelper(
+    url=settings.postgres.url,
+    echo=settings.postgres.echo
+)
