@@ -20,6 +20,24 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+async def get_user_by_id(user_id: int, session: AsyncSession) -> User:
+    """
+    Fetch a user by their ID or raise a 404 exception.
+    """
+    query = select(User).where(User.id == user_id)
+    result = await session.execute(query)
+    user = result.scalars().first()
+
+    if user is None:
+        logger.warning(f"User with ID {user_id} not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+
+    return user
+
+
 @router.get("/", response_model=UsersListResponse)
 async def get_users(
         offset: int = Query(0, ge=0),
@@ -36,26 +54,10 @@ async def get_users(
     total_count_stmt = select(func.count()).select_from(User)
     total_count_result = await session.execute(total_count_stmt)
     total_count = total_count_result.scalar()
-
     logger.info("Fetched users successfully.")
 
-    users_schema = [
-        UserSchema(
-            id=user.id,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            email=user.email,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
-            last_activity_at=user.last_activity_at
-        )
-        for user in users
-    ]
-
-    return UsersListResponse(
-        users=users_schema,
-        total_count=total_count
-    )
+    users_schema = [UserSchema(user=user) for user in users]
+    return UsersListResponse(users=users_schema, total_count=total_count)
 
 
 @router.get("/{user_id}", response_model=UserDetailResponse)
@@ -66,28 +68,11 @@ async def get_user(
     """
     Fetch a user by their ID.
     """
-    query = select(User).where(User.id == user_id)
-    result = await session.execute(query)
-    user = result.scalars().first()
-
-    if user is None:
-        logger.warning(f"User with ID {user_id} not found.")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
-
+    user = await get_user_by_id(user_id, session)
     logger.info(f"Fetched user with ID {user_id} successfully.")
-    _user = UserSchema(
-        id=user.id,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-        last_activity_at=user.last_activity_at
+    return UserDetailResponse(
+        user=UserSchema(user=user)
     )
-    return UserDetailResponse(user=_user)
 
 
 @router.post(
@@ -123,17 +108,9 @@ async def create_user(
 
     logger.info(f"Created new user with ID {new_user.id}.")
 
-    user_schema = UserSchema(
-        id=new_user.id,
-        first_name=new_user.first_name,
-        last_name=new_user.last_name,
-        email=new_user.email,
-        created_at=new_user.created_at,
-        updated_at=new_user.updated_at,
-        last_activity_at=new_user.last_activity_at
+    return UserDetailResponse(
+        user=UserSchema(user=new_user)
     )
-
-    return UserDetailResponse(user=user_schema)
 
 
 @router.put("/{user_id}", response_model=UserDetailResponse)
@@ -145,16 +122,7 @@ async def update_user(
     """
     Update an existing user's details.
     """
-    query = select(User).where(User.id == user_id)
-    result = await session.execute(query)
-    user = result.scalars().first()
-
-    if user is None:
-        logger.warning(f"User with ID {user_id} not found for update.")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
+    user = await get_user_by_id(user_id, session)
     if user_update.first_name:
         user.first_name = user_update.first_name
     if user_update.last_name:
@@ -163,16 +131,7 @@ async def update_user(
     await session.refresh(user)
 
     logger.info(f"Updated user with ID {user_id}.")
-    user_schema = UserSchema(
-        id=user.id,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-        last_activity_at=user.last_activity_at
-    )
-    return UserDetailResponse(user=user_schema)
+    return UserDetailResponse(user=UserSchema(user=user))
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -183,17 +142,7 @@ async def delete_user(
     """
     Delete a user from the database.
     """
-    query = select(User).where(User.id == user_id)
-    result = await session.execute(query)
-    user = result.scalars().first()
-
-    if user is None:
-        logger.warning(f"User with ID {user_id} not found for deletion.")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
-        )
-
+    user = await get_user_by_id(user_id, session)
     await session.delete(user)
     await session.commit()
 
