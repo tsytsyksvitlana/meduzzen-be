@@ -98,9 +98,7 @@ async def create_user(
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
-        password=hashed_password,
-        created_at=datetime.now(),
-        last_activity_at=datetime.now(),
+        password=hashed_password
     )
     session.add(new_user)
     await session.commit()
