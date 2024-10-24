@@ -42,6 +42,15 @@ services:
     networks:
       - home
 
+  postgres_test:
+    image: "postgres:alpine"
+    ports:
+      - "5433:5432"
+    env_file:
+      - ./.env.test
+    networks:
+      - home
+
 volumes:
   postgres_data:
 

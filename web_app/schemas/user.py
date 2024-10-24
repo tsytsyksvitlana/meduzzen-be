@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import ClassVar
 
 from fastapi import HTTPException, status
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 class UserSchema(BaseModel):
@@ -18,7 +18,8 @@ class UserSchema(BaseModel):
     updated_at: datetime | None
     last_activity_at: datetime
 
-    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+    class Config:
+        orm_mode = True
 
 
 class SignInRequestModel(BaseModel):

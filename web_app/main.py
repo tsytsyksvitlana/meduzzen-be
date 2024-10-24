@@ -10,6 +10,7 @@ from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
 from web_app.logging.logger import setup_logger
 from web_app.routers.healthcheck import router as router
+from web_app.routers.users import router as users_router
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
