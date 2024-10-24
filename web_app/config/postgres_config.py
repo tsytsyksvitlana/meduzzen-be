@@ -1,4 +1,3 @@
-from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 
@@ -7,32 +6,28 @@ class PostgresSettings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_HOST: str
-    POSTGRES_PORT: str
+    POSTGRES_PORT: int
 
     echo: bool = True
 
     @property
-    def url(self):
+    def url(self) -> str:
         return (
             f"postgresql+asyncpg://"
             f"{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
             f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
 
-    @url.setter
-    def url(self, new_url: str):
-        self._update_db_url(new_url)
-
-    def _update_db_url(self, new_url: str):
+    def update_url(self, new_url: str):
         """
-        Function parses url and updates db url accordingly
+        Function parses URL and updates the connection details accordingly.
         """
-        user, password, host, port, name = self._parse_url(new_url)
-        self.POSTGRES_USER = user
-        self.POSTGRES_PASSWORD = password
-        self.POSTGRES_HOST = host
-        self.POSTGRES_PORT = port
-        self.POSTGRES_DB = name
+        _user, _password, _host, _port, _db_name = self._parse_url(new_url)
+        self.POSTGRES_USER = _user
+        self.POSTGRES_PASSWORD = _password
+        self.POSTGRES_HOST = _host
+        self.POSTGRES_PORT = _port
+        self.POSTGRES_DB = _db_name
 
     def _parse_url(self, url: str):
         """
@@ -48,4 +43,5 @@ class PostgresSettings(BaseSettings):
 
 
 class TestPostgresSettings(PostgresSettings):
-    model_config = ConfigDict(env_file=".env.test", env_file_encoding="utf-8")
+    class Config:
+        env_file = ".env.test"

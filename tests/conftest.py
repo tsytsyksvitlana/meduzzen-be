@@ -41,11 +41,11 @@ async def setup_test_db_and_teardown():
     """
     logger.info("Setting up the test database...")
     original_url = settings.postgres.url
-    settings.postgres.url = test_settings.url
+    settings.postgres.update_url(test_settings.url)
 
     postgres_helper.engine = create_async_engine(
         settings.postgres.url,
-        echo=test_settings.echo
+        echo=settings.postgres.echo
     )
     postgres_helper.session_factory = async_sessionmaker(
         bind=postgres_helper.engine,
@@ -70,7 +70,7 @@ async def setup_test_db_and_teardown():
         await conn.run_sync(Base.metadata.drop_all)
     await postgres_helper.engine.dispose()
 
-    settings.postgres.url = original_url
+    settings.postgres.update_url(original_url)
     postgres_helper.engine = create_async_engine(
         settings.postgres.url,
         echo=settings.postgres.echo
