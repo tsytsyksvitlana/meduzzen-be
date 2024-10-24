@@ -27,7 +27,8 @@ async def client() -> AsyncClient:
     transport = ASGITransport(app=app)
     async with AsyncClient(
         transport=transport,
-        base_url=f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
+        base_url=f"http://{settings.fastapi.SERVER_HOST}:"
+                 f"{settings.fastapi.SERVER_PORT}",
     ) as ac:
         yield ac
     logger.info("HTTP client closed.")
