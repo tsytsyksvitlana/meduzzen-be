@@ -9,11 +9,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine
 )
 
+from tests.config.postgres_config import test_postgres_settings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
 from web_app.models.base import Base
-from tests.config.postgres_config import test_postgres_settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

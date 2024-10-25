@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import ClassVar
 
 from fastapi import HTTPException, status
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class UserSchema(BaseModel):
@@ -18,19 +18,7 @@ class UserSchema(BaseModel):
     updated_at: datetime | None
     last_activity_at: datetime
 
-    def __init__(self, **data):
-        if user := data.get("user"):
-            super().__init__(
-                id=user.id,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                email=user.email,
-                created_at=user.created_at,
-                updated_at=user.updated_at,
-                last_activity_at=user.last_activity_at
-            )
-        else:
-            super().__init__(**data)
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
 
 
 class SignInRequestModel(BaseModel):
