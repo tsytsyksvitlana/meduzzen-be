@@ -22,5 +22,7 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY web_app ./web_app
 COPY tests ./tests
+COPY .env.test .env.test
+COPY .env .env
 
-ENTRYPOINT ["pytest", "tests"]
+ENTRYPOINT ["pytest", "-v", "tests"]

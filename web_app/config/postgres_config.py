@@ -1,3 +1,4 @@
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 
@@ -6,9 +7,11 @@ class PostgresSettings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     POSTGRES_HOST: str
-    POSTGRES_PORT: int
+    POSTGRES_PORT: str
 
     echo: bool = True
+
+    model_config = ConfigDict(env_file=".env", extra="ignore")
 
     @property
     def url(self) -> str:
@@ -40,8 +43,3 @@ class PostgresSettings(BaseSettings):
         port, name = port_name.split("/")
 
         return user, password, host, port, name
-
-
-class TestPostgresSettings(PostgresSettings):
-    class Config:
-        env_file = ".env.test"

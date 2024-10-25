@@ -9,16 +9,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine
 )
 
-from web_app.config.postgres_config import TestPostgresSettings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
 from web_app.models.base import Base
+from tests.config.postgres_config import test_postgres_settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-test_settings = TestPostgresSettings()
 
 
 @pytest.fixture(scope="function")
@@ -41,7 +39,7 @@ async def setup_test_db_and_teardown():
     """
     logger.info("Setting up the test database...")
     original_url = settings.postgres.url
-    settings.postgres.update_url(test_settings.url)
+    settings.postgres.update_url(test_postgres_settings.url)
 
     postgres_helper.engine = create_async_engine(
         settings.postgres.url,

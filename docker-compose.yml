@@ -51,6 +51,16 @@ services:
       - "5433:5432"
     env_file:
       - ./.env.test
+    network_mode: "host"
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      - postgres_test
+    env_file:
+      - ./.env.test
     networks:
       - home
 
