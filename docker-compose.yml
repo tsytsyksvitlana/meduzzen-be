@@ -49,9 +49,14 @@ services:
     image: "postgres:alpine"
     ports:
       - "5433:5432"
-    env_file:
-      - ./.env.test
-    network_mode: "host"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: meduzzenpass
+      POSTGRES_DB: test_meduzzen_db
+      POSTGRES_HOST: postgres_test
+      POSTGRES_PORT: 5432
+    networks:
+      - home
 
   test:
     build:
