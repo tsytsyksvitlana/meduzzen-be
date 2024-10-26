@@ -93,7 +93,7 @@ async def create_user(
         updated_at=user.updated_at,
         last_activity_at=user.last_activity_at
     )
-    return UserDetailResponse(user = user_schema)
+    return UserDetailResponse(user=user_schema)
 
 
 @router.put("/{user_id}", response_model=UserDetailResponse)
