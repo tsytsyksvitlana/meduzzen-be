@@ -3,6 +3,7 @@ import logging
 import pytest
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -13,7 +14,9 @@ from tests.config.postgres_config import test_postgres_settings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
+from web_app.models import User
 from web_app.models.base import Base
+from web_app.utils.password_manager import PasswordManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -88,9 +91,44 @@ async def db_session(setup_test_db_and_teardown) -> AsyncSession:
     Provides a database session for tests.
     """
     async_session_factory = setup_test_db_and_teardown
+    if async_session_factory is None:
+        raise RuntimeError("Session factory is not initialized properly.")
     async with async_session_factory() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture
+async def create_test_users(db_session: AsyncSession):
+    users_data = [
+        {
+            "first_name": "John",
+            "last_name": "Doe",
+            "email": "john.doe@example.com",
+            "password": "ggddHHHSDfd234/",
+        },
+        {
+            "first_name": "Jane",
+            "last_name": "Smith",
+            "email": "jane.smith@example.com",
+            "password": "vdsfhDFDF/934",
+        },
+    ]
+    for data in users_data:
+        hashed_password = PasswordManager.hash_password(data["password"])
+        new_user = User(
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            email=data["email"],
+            password=hashed_password,
+        )
+        db_session.add(new_user)
+    await db_session.commit()
+
+    result = await db_session.execute(select(User))
+    created_users = result.scalars().all()
+
+    return created_users
 
 
 @pytest.fixture(scope="function")

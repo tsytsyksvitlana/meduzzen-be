@@ -12,7 +12,7 @@ class BaseRepository(RepositoryInterface[T], Generic[T]):
         self.model = model
         self.session = session
 
-    async def get_obj_by_id(self, obj_id: str) -> T | None:
+    async def get_obj_by_id(self, obj_id: int) -> T | None:
         query = select(self.model).where(self.model.id == obj_id)
         result = await self.session.execute(query)
         return result.scalars().first()
@@ -28,12 +28,12 @@ class BaseRepository(RepositoryInterface[T], Generic[T]):
         await self.session.refresh(obj)
         return obj
 
-    async def update_obj(self, obj: T, obj_id: str) -> T:
+    async def update_obj(self, obj: T, obj_id: int) -> T:
         await self.session.commit()
         await self.session.refresh(obj)
         return obj
 
-    async def delete_obj(self, obj_id: str) -> T:
+    async def delete_obj(self, obj_id: int) -> T:
         obj = await self.get_obj_by_id(obj_id)
         if obj:
             await self.session.delete(obj)
