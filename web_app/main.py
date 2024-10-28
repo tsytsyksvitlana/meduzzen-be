@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
-from web_app.logging.logger import setup_logger
+from web_app.routers.auth import router as auth_router
 from web_app.routers.healthcheck import router as router
 from web_app.routers.users import router as users_router
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up...")
-    setup_logger(settings.fastapi.ENV_MODE)
+    # setup_logger(settings.fastapi.ENV_MODE)
 
     await redis_helper.redis.ping()
     logger.info("Redis connected.")
@@ -32,6 +32,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
 app.include_router(users_router, prefix="/users", tags=["users"])
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
