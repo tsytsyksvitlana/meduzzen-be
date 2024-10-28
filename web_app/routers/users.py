@@ -26,9 +26,9 @@ async def get_user_service(
 
 @router.get("/", response_model=UsersListResponse)
 async def get_users(
-        offset: int = Query(0, ge=0),
-        limit: int = Query(10, gt=0),
-        user_service: UserService = Depends(get_user_service)
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0),
+    user_service: UserService = Depends(get_user_service)
 ) -> UsersListResponse:
     """
     Fetch all users from the database with optional offset and limit.

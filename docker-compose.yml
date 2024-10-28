@@ -48,7 +48,7 @@ services:
     container_name: postgres_test
     image: "postgres:alpine"
     ports:
-      - "5433:5432"
+      - "5433:${POSTGRES_PORT}"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: meduzzenpass

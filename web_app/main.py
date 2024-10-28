@@ -32,7 +32,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
 app.include_router(users_router, prefix="/users", tags=["users"])
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
