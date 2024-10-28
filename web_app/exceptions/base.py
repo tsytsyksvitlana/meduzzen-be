@@ -1,17 +1,10 @@
-from fastapi import HTTPException, status
-
-
-class ObjectNotFoundException(HTTPException):
+class ObjectNotFoundException(Exception):
     def __init__(self, object_type: str, object_id: int):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{object_type} with ID {object_id} not found."
-        )
+        self.object_type = object_type
+        self.object_id = object_id
 
 
-class ObjectAlreadyExistsException(HTTPException):
+class ObjectAlreadyExistsException(Exception):
     def __init__(self, object_type: str, object_id: int):
-        super().__init__(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{object_type} with ID {object_id} already exists."
-        )
+        self.object_type = object_type
+        self.object_id = object_id
