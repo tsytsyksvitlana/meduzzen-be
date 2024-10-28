@@ -37,16 +37,11 @@ async def client() -> AsyncClient:
 
 @pytest.fixture(scope="function")
 async def setup_test_db_and_teardown():
-    """
-    Sets up the test database and tears it down after the test.
-    """
     logger.info("Setting up the test database...")
-    original_url = settings.postgres.url
-    settings.postgres.update_url(test_postgres_settings.url)
 
     postgres_helper.engine = create_async_engine(
-        settings.postgres.url,
-        echo=settings.postgres.echo
+        test_postgres_settings.url,
+        echo=test_postgres_settings.echo
     )
     postgres_helper.session_factory = async_sessionmaker(
         bind=postgres_helper.engine,
@@ -61,7 +56,7 @@ async def setup_test_db_and_teardown():
     logger.info("Database tables created.")
 
     alembic_cfg = Config("web_app/alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.postgres.url)
+    alembic_cfg.set_main_option("sqlalchemy.url", test_postgres_settings.url)
     alembic_cfg.set_main_option("script_location", "web_app/migrations")
 
     yield postgres_helper.session_factory
@@ -70,35 +65,18 @@ async def setup_test_db_and_teardown():
     async with postgres_helper.engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await postgres_helper.engine.dispose()
-
-    settings.postgres.update_url(original_url)
-    postgres_helper.engine = create_async_engine(
-        settings.postgres.url,
-        echo=settings.postgres.echo
-    )
-    postgres_helper.session_factory = async_sessionmaker(
-        bind=postgres_helper.engine,
-        autoflush=False,
-        autocommit=False,
-        expire_on_commit=False,
-    )
-    logger.info("Test database dropped and original DatabaseHelper restored.")
+    logger.info("Test database dropped.")
 
 
 @pytest.fixture(scope="function")
 async def db_session(setup_test_db_and_teardown) -> AsyncSession:
-    """
-    Provides a database session for tests.
-    """
     async_session_factory = setup_test_db_and_teardown
-    if async_session_factory is None:
-        raise RuntimeError("Session factory is not initialized properly.")
     async with async_session_factory() as session:
         yield session
         await session.rollback()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 async def create_test_users(db_session: AsyncSession):
     users_data = [
         {
