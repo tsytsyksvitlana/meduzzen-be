@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.repositories.user_repository import UserRepository
 from web_app.schemas.user import (
-    SignUpRequestModel,
     UserDetailResponse,
     UserSchema,
     UsersListResponse,
@@ -60,30 +59,6 @@ async def get_user(
     """
     user = await user_service.get_user_by_id(user_id)
     logger.info(f"Fetched user with ID {user_id} successfully.")
-    user_schema = UserSchema(
-        id=user.id,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        email=user.email,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-        last_activity_at=user.last_activity_at
-    )
-    return UserDetailResponse(user=user_schema)
-
-
-@router.post(
-    "/", response_model=UserDetailResponse, status_code=status.HTTP_201_CREATED
-)
-async def create_user(
-    user: SignUpRequestModel,
-    user_service: UserService = Depends(get_user_service)
-) -> UserDetailResponse:
-    """
-    Create a new user in the database.
-    """
-    user = await user_service.create_user(user)
-    logger.info(f"Created new user with ID {user.id}.")
     user_schema = UserSchema(
         id=user.id,
         first_name=user.first_name,

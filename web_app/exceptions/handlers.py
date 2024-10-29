@@ -1,6 +1,10 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
+from web_app.exceptions.auth import (
+    AuthorizationException,
+    TokenExpiredException
+)
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
@@ -34,4 +38,28 @@ async def handle_object_already_exists_exception(
                 f"{exc.object_type} with ID {exc.object_id} already exists."
             )
         },
+    )
+
+
+async def handle_authorization_exception(
+        request: Request, exc: AuthorizationException
+):
+    """
+    Handles AuthorizationException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": exc.detail},
+    )
+
+
+async def handle_token_expired_exception(
+        request: Request, exc: TokenExpiredException
+):
+    """
+    Handles TokenExpiredException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": exc.detail},
     )

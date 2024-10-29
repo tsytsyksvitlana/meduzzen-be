@@ -8,13 +8,19 @@ from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
+from web_app.exceptions.auth import (
+    AuthorizationException,
+    TokenExpiredException
+)
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
 from web_app.exceptions.handlers import (
+    handle_authorization_exception,
     handle_object_already_exists_exception,
-    handle_object_not_found_exception
+    handle_object_not_found_exception,
+    handle_token_expired_exception
 )
 from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
@@ -102,6 +108,22 @@ async def object_already_exists_handler(
     exc: ObjectAlreadyExistsException
 ):
     return await handle_object_already_exists_exception(request, exc)
+
+
+@app.exception_handler(AuthorizationException)
+async def auth_exception_handler(
+    request: Request,
+    exc: AuthorizationException
+):
+    return await handle_authorization_exception(request, exc)
+
+
+@app.exception_handler(TokenExpiredException)
+async def auth_exception_handler(
+    request: Request,
+    exc: TokenExpiredException
+):
+    return await handle_token_expired_exception(request, exc)
 
 
 if __name__ == "__main__":

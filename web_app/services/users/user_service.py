@@ -52,3 +52,9 @@ class UserService:
     async def delete_user(self, user_id: int):
         user = await self.get_user_by_id(user_id)
         await self.user_repository.delete_obj(user.id)
+
+    async def get_user_by_email(self, email: str) -> User:
+        user = await self.user_repository.get_user_by_email(email)
+        if not user:
+            raise UserNotFoundException(email)
+        return user
