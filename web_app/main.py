@@ -56,8 +56,8 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def exception_handler(
-        request: Request,
-        exc: Exception
+    request: Request,
+    exc: Exception
 ) -> JSONResponse:
     """
     Handles unhandled exceptions and logs the error details.
@@ -72,8 +72,8 @@ async def exception_handler(
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
-        request: Request,
-        exc: HTTPException
+    request: Request,
+    exc: HTTPException
 ) -> JSONResponse:
     """
     Handles HTTP exceptions and logs the error details.
@@ -88,16 +88,16 @@ async def http_exception_handler(
 
 @app.exception_handler(ObjectNotFoundException)
 async def object_not_found_handler(
-        request: Request,
-        exc: ObjectNotFoundException
+    request: Request,
+    exc: ObjectNotFoundException
 ):
     return await handle_object_not_found_exception(request, exc)
 
 
 @app.exception_handler(ObjectAlreadyExistsException)
 async def object_already_exists_handler(
-        request: Request,
-        exc: ObjectAlreadyExistsException
+    request: Request,
+    exc: ObjectAlreadyExistsException
 ):
     return await handle_object_already_exists_exception(request, exc)
 

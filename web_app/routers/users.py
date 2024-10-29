@@ -52,8 +52,8 @@ async def get_users(
 
 @router.get("/{user_id}", response_model=UserDetailResponse)
 async def get_user(
-        user_id: int,
-        user_service: UserService = Depends(get_user_service)
+    user_id: int,
+    user_service: UserService = Depends(get_user_service)
 ) -> UserDetailResponse:
     """
     Fetch a user by their ID.
@@ -76,8 +76,8 @@ async def get_user(
     "/", response_model=UserDetailResponse, status_code=status.HTTP_201_CREATED
 )
 async def create_user(
-        user: SignUpRequestModel,
-        user_service: UserService = Depends(get_user_service)
+    user: SignUpRequestModel,
+    user_service: UserService = Depends(get_user_service)
 ) -> UserDetailResponse:
     """
     Create a new user in the database.
@@ -98,9 +98,9 @@ async def create_user(
 
 @router.put("/{user_id}", response_model=UserDetailResponse)
 async def update_user(
-        user_id: int,
-        user_update: UserUpdateRequestModel,
-        user_service: UserService = Depends(get_user_service)
+    user_id: int,
+    user_update: UserUpdateRequestModel,
+    user_service: UserService = Depends(get_user_service)
 ) -> UserDetailResponse:
     """
     Update an existing user's details.
@@ -121,8 +121,8 @@ async def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
-        user_id: int,
-        user_service: UserService = Depends(get_user_service)
+    user_id: int,
+    user_service: UserService = Depends(get_user_service)
 ) -> None:
     """
     Delete a user from the database.
