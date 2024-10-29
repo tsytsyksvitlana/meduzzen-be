@@ -92,7 +92,9 @@ async def login(
     db_user = await user_service.get_user_by_email(user.email)
     if PasswordManager.verify_password(user.password, db_user.password):
         access_token = create_access_token(data={"sub": user.email})
+        logger.info(f"User {user.email} logged in successfully")
         return {"access_token": access_token, "token_type": "Bearer"}
+    logger.warning(f"Invalid login attempt for user: {user.email}")
     raise AuthorizationException(detail="Invalid username or password")
 
 
@@ -104,7 +106,9 @@ async def read_users_me(
     email = current_user.get("email")
     db_user = await user_service.get_user_by_email(email)
     if not db_user:
+        logger.warning(f"User with email {email} not found")
         raise ObjectNotFoundException("User", email)
+    logger.info(f"User profile retrieved for {email}")
     user_schema = UserSchema(
         id=db_user.id,
         first_name=db_user.first_name,
