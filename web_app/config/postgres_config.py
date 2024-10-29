@@ -1,3 +1,4 @@
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
 
@@ -10,8 +11,10 @@ class PostgresSettings(BaseSettings):
 
     echo: bool = True
 
+    model_config = ConfigDict(env_file=".env", extra="ignore")
+
     @property
-    def url(self):
+    def url(self) -> str:
         return (
             f"postgresql+asyncpg://"
             f"{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"

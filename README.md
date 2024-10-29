@@ -87,7 +87,7 @@ docker compose down
 ```
 ### Migrations
 ```
-docker exec -it -w /code/web_app meduzzen-be-fastapi-1 /bin/sh
+docker exec -it -w /code/web_app fastapi /bin/sh
 ```
 ```
 PYTHONPATH=/code alembic revision --autogenerate -m "message"

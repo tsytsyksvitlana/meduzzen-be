@@ -8,8 +8,17 @@ from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
+from web_app.exceptions.base import (
+    ObjectAlreadyExistsException,
+    ObjectNotFoundException
+)
+from web_app.exceptions.handlers import (
+    handle_object_already_exists_exception,
+    handle_object_not_found_exception
+)
 from web_app.logging.logger import setup_logger
 from web_app.routers.healthcheck import router as router
+from web_app.routers.users import router as users_router
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(router)
+app.include_router(users_router, prefix="/users", tags=["users"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
@@ -46,8 +56,8 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def exception_handler(
-        request: Request,
-        exc: Exception
+    request: Request,
+    exc: Exception
 ) -> JSONResponse:
     """
     Handles unhandled exceptions and logs the error details.
@@ -62,8 +72,8 @@ async def exception_handler(
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
-        request: Request,
-        exc: HTTPException
+    request: Request,
+    exc: HTTPException
 ) -> JSONResponse:
     """
     Handles HTTP exceptions and logs the error details.
@@ -74,6 +84,22 @@ async def http_exception_handler(
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
+
+
+@app.exception_handler(ObjectNotFoundException)
+async def object_not_found_handler(
+    request: Request,
+    exc: ObjectNotFoundException
+):
+    return await handle_object_not_found_exception(request, exc)
+
+
+@app.exception_handler(ObjectAlreadyExistsException)
+async def object_already_exists_handler(
+    request: Request,
+    exc: ObjectAlreadyExistsException
+):
+    return await handle_object_already_exists_exception(request, exc)
 
 
 if __name__ == "__main__":
