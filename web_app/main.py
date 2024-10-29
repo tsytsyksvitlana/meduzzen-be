@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up...")
-    setup_logger(settings.fastapi.ENV_MODE)
+    # setup_logger(settings.fastapi.ENV_MODE)
 
     await redis_helper.redis.ping()
     logger.info("Redis connected.")
@@ -45,6 +46,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+auth_header = HTTPBearer()
 app.include_router(router)
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])

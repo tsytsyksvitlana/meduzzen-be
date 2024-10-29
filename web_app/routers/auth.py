@@ -55,8 +55,14 @@ def get_current_user(authorization: str = Header(None)):
         email: str = payload.get("sub")
         if email is None:
             raise AuthorizationException(detail="Invalid token")
+
+        if datetime.fromtimestamp(payload.get("exp"), tz=timezone.utc) < datetime.now(timezone.utc):
+            logger.warning("Token has expired")
+            raise TokenExpiredException()
+
         return {"email": email}
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT error: {str(e)}")
         raise TokenExpiredException()
 
 
