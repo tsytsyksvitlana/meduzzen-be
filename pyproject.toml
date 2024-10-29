@@ -23,6 +23,7 @@ asyncio = "^3.4.3"
 passlib = "^1.7.4"
 fastapi-jwt = "^0.3.0"
 python-jose = "^3.3"
+pydantic-settings = "^2.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
