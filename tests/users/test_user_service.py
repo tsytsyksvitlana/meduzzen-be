@@ -13,8 +13,8 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_user_service_create_user(
-        db_session: AsyncSession,
-        create_test_users
+    db_session: AsyncSession,
+    create_test_users
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
@@ -36,8 +36,8 @@ async def test_user_service_create_user(
 
 
 async def test_user_service_get_user_by_id(
-        db_session: AsyncSession,
-        create_test_users
+    db_session: AsyncSession,
+    create_test_users
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
@@ -52,8 +52,8 @@ async def test_user_service_get_user_by_id(
 
 
 async def test_user_service_update_user(
-        db_session: AsyncSession,
-        create_test_users
+    db_session: AsyncSession,
+    create_test_users
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
@@ -68,8 +68,8 @@ async def test_user_service_update_user(
 
 
 async def test_user_service_delete_user(
-        db_session: AsyncSession,
-        create_test_users
+    db_session: AsyncSession,
+    create_test_users
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
@@ -82,8 +82,8 @@ async def test_user_service_delete_user(
 
 
 async def test_user_service_get_user_by_email(
-        db_session: AsyncSession,
-        create_test_users
+    db_session: AsyncSession,
+    create_test_users
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
