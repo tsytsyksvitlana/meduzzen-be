@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
-from web_app.routers.auth import router as auth_router
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
@@ -18,6 +17,7 @@ from web_app.exceptions.handlers import (
     handle_object_not_found_exception
 )
 from web_app.logging.logger import setup_logger
+from web_app.routers.auth import router as auth_router
 from web_app.routers.healthcheck import router as router
 from web_app.routers.users import router as users_router
 
