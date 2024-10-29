@@ -119,7 +119,7 @@ async def auth_exception_handler(
 
 
 @app.exception_handler(TokenExpiredException)
-async def auth_exception_handler(
+async def auth_token_handler(
     request: Request,
     exc: TokenExpiredException
 ):
