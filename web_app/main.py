@@ -9,22 +9,8 @@ from fastapi.security import HTTPBearer
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
-from web_app.exceptions.auth import (
-    AuthorizationException,
-    TokenExpiredException
-)
-from web_app.exceptions.base import ObjectAlreadyExistsException
-from web_app.exceptions.handlers import (
-    handle_authorization_exception,
-    handle_object_already_exists_exception,
-    handle_token_expired_exception,
-    handle_user_email_not_found_exception,
-    handle_user_id_not_found_exception
-)
-from web_app.exceptions.users import (
-    UserEmailNotFoundException,
-    UserIdNotFoundException
-)
+from web_app.exceptions.handlers import handle_exception
+from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
 from web_app.routers.healthcheck import router as router
 from web_app.routers.users import router as users_router
@@ -35,7 +21,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up...")
-    # setup_logger(settings.fastapi.ENV_MODE)
+    setup_logger(settings.fastapi.ENV_MODE)
 
     await redis_helper.redis.ping()
     logger.info("Redis connected.")
@@ -66,22 +52,6 @@ app.add_middleware(
 )
 
 
-@app.exception_handler(Exception)
-async def exception_handler(
-    request: Request,
-    exc: Exception
-) -> JSONResponse:
-    """
-    Handles unhandled exceptions and logs the error details.
-    Returns a 500 response with an error message.
-    """
-    logger.error(f"Unhandled error: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal Server Error"},
-    )
-
-
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
     request: Request,
@@ -98,44 +68,17 @@ async def http_exception_handler(
     )
 
 
-@app.exception_handler(UserIdNotFoundException)
-async def user_id_not_found_handler(
+@app.exception_handler(Exception)
+async def exception_handler(
     request: Request,
-    exc: UserIdNotFoundException
-):
-    return await handle_user_id_not_found_exception(request, exc)
-
-
-@app.exception_handler(UserEmailNotFoundException)
-async def user_email_not_found_handler(
-    request: Request,
-    exc: UserEmailNotFoundException
-):
-    return await handle_user_email_not_found_exception(request, exc)
-
-
-@app.exception_handler(ObjectAlreadyExistsException)
-async def object_already_exists_handler(
-    request: Request,
-    exc: ObjectAlreadyExistsException
-):
-    return await handle_object_already_exists_exception(request, exc)
-
-
-@app.exception_handler(AuthorizationException)
-async def auth_exception_handler(
-    request: Request,
-    exc: AuthorizationException
-):
-    return await handle_authorization_exception(request, exc)
-
-
-@app.exception_handler(TokenExpiredException)
-async def auth_token_handler(
-    request: Request,
-    exc: TokenExpiredException
-):
-    return await handle_token_expired_exception(request, exc)
+    exc: Exception
+) -> JSONResponse:
+    """
+    Handles unhandled exceptions and logs the error details.
+    Returns a custom response with an error message
+    or 500 if not properly handled.
+    """
+    return await handle_exception(request, exc)
 
 
 if __name__ == "__main__":
