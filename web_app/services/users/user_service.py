@@ -1,7 +1,7 @@
 from web_app.exceptions.users import (
     UserAlreadyExistsException,
-    UserIdNotFoundException,
-    UserEmailNotFoundException
+    UserEmailNotFoundException,
+    UserIdNotFoundException
 )
 from web_app.models import User
 from web_app.repositories.user_repository import UserRepository

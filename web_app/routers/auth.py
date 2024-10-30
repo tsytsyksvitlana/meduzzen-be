@@ -57,7 +57,7 @@ async def login(
         logger.info(f"User {user.email} logged in successfully")
         return {"access_token": access_token, "token_type": "Bearer"}
     logger.warning(f"Invalid login attempt for user: {user.email}")
-    raise AuthorizationException(detail="Invalid username or password")
+    raise AuthorizationException(detail="Invalid email or password")
 
 
 @router.get("/me", response_model=UserDetailResponse)
