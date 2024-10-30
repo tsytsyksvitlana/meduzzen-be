@@ -58,3 +58,16 @@ class UserService:
         if not user:
             raise UserNotFoundException(email)
         return user
+
+    async def create_user_by_email(self, email: str) -> User:
+        existing_user = await self.user_repository.get_user_by_email(email)
+        if existing_user:
+            return existing_user
+
+        new_user = User(
+            first_name=email.split('@')[0],
+            last_name="",
+            email=email,
+            password=PasswordManager.return_default_password()
+        )
+        return await self.user_repository.create_obj(new_user)

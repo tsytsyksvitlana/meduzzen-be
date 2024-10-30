@@ -1,10 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from web_app.db.postgres_helper import postgres_helper as pg_helper
-from web_app.repositories.user_repository import UserRepository
 from web_app.schemas.user import (
     UserDetailResponse,
     UserSchema,
@@ -12,15 +9,10 @@ from web_app.schemas.user import (
     UserUpdateRequestModel
 )
 from web_app.services.users.user_service import UserService
+from web_app.utils.auth import get_user_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-async def get_user_service(
-    session: AsyncSession = Depends(pg_helper.session_getter)
-) -> UserService:
-    return UserService(user_repository=UserRepository(session))
 
 
 @router.get("/", response_model=UsersListResponse)

@@ -1,14 +1,18 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Header
+from fastapi import Depends, Header
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.config.settings import settings
+from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.auth import (
     AuthorizationException,
     TokenExpiredException
 )
+from web_app.repositories.user_repository import UserRepository
+from web_app.services.users.user_service import UserService
 from web_app.utils.token_decoders.auth_zero_decoder import AuthZeroTokenDecoder
 from web_app.utils.token_decoders.custom_token_decoder import (
     CustomTokenDecoder
@@ -30,7 +34,16 @@ def create_access_token(data: dict):
     )
 
 
-def get_current_user(authorization: str = Header(None)):
+async def get_user_service(
+    session: AsyncSession = Depends(pg_helper.session_getter)
+) -> UserService:
+    return UserService(user_repository=UserRepository(session))
+
+
+async def get_current_user(
+        authorization: str = Header(None),
+        user_service: UserService = Depends(get_user_service)
+):
     if not authorization:
         raise AuthorizationException(detail="Authorization header missing")
 
@@ -50,7 +63,10 @@ def get_current_user(authorization: str = Header(None)):
             raise AuthorizationException(detail="Unsupported algorithm")
 
         payload = decoder.decode(token)
-        email: str = payload.get("email") or payload.get("sub")
+
+        if email := payload.get("email") or payload.get("sub"):
+            await user_service.create_user_by_email(email)
+
         logger.info(f"Authenticated user: {email}")
         return {"email": email}
 
