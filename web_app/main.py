@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
@@ -23,7 +23,6 @@ from web_app.exceptions.handlers import (
     handle_object_not_found_exception,
     handle_token_expired_exception
 )
-from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
 from web_app.routers.healthcheck import router as router
 from web_app.routers.users import router as users_router

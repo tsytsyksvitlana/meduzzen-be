@@ -1,14 +1,8 @@
 import logging
-from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Header, status
-from jose import JWTError, jwt
+from fastapi import APIRouter, Depends, status
 
-from web_app.config.settings import settings
-from web_app.exceptions.auth import (
-    AuthorizationException,
-    TokenExpiredException
-)
+from web_app.exceptions.auth import AuthorizationException
 from web_app.exceptions.base import ObjectNotFoundException
 from web_app.routers.users import get_user_service
 from web_app.schemas.token import Token
@@ -19,55 +13,17 @@ from web_app.schemas.user import (
     UserSchema
 )
 from web_app.services.users.user_service import UserService
+from web_app.utils.auth import create_access_token, get_current_user
 from web_app.utils.password_manager import PasswordManager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def create_access_token(data: dict):
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.auth_jwt.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-    to_encode = data.copy()
-    to_encode.update({"exp": expire})
-    return jwt.encode(
-        to_encode,
-        settings.auth_jwt.SECRET_KEY,
-        algorithm=settings.auth_jwt.ALGORITHM
-    )
-
-
-def get_current_user(authorization: str = Header(None)):
-    if not authorization:
-        raise AuthorizationException(detail="Authorization header missing")
-
-    token_type, _, token = authorization.partition(" ")
-    if token_type.lower() != "bearer" or not token:
-        raise AuthorizationException(detail="Invalid authorization header")
-
-    try:
-        payload = jwt.decode(
-            token,
-            settings.auth_jwt.SECRET_KEY,
-            algorithms=[settings.auth_jwt.ALGORITHM]
-        )
-        email: str = payload.get("sub")
-        if email is None:
-            raise AuthorizationException(detail="Invalid token")
-
-        if datetime.fromtimestamp(payload.get("exp"), tz=timezone.utc) < datetime.now(timezone.utc):
-            logger.warning("Token has expired")
-            raise TokenExpiredException()
-
-        return {"email": email}
-    except JWTError as e:
-        logger.error(f"JWT error: {str(e)}")
-        raise TokenExpiredException()
-
-
 @router.post(
-    "/register", response_model=UserDetailResponse, status_code=status.HTTP_201_CREATED
+    "/register",
+    response_model=UserDetailResponse,
+    status_code=status.HTTP_201_CREATED
 )
 async def create_user(
     user: SignUpRequestModel,

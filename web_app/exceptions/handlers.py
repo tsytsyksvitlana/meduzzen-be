@@ -12,7 +12,7 @@ from web_app.exceptions.base import (
 
 
 async def handle_object_not_found_exception(
-        request: Request, exc: ObjectNotFoundException
+    request: Request, exc: ObjectNotFoundException
 ):
     """
     Handles ObjectNotFoundException and shows the error details.
@@ -26,7 +26,7 @@ async def handle_object_not_found_exception(
 
 
 async def handle_object_already_exists_exception(
-        request: Request, exc: ObjectAlreadyExistsException
+    request: Request, exc: ObjectAlreadyExistsException
 ):
     """
     Handles ObjectAlreadyExistsException and shows the error details.
@@ -42,7 +42,7 @@ async def handle_object_already_exists_exception(
 
 
 async def handle_authorization_exception(
-        request: Request, exc: AuthorizationException
+    request: Request, exc: AuthorizationException
 ):
     """
     Handles AuthorizationException and shows the error details.
@@ -54,7 +54,7 @@ async def handle_authorization_exception(
 
 
 async def handle_token_expired_exception(
-        request: Request, exc: TokenExpiredException
+    request: Request, exc: TokenExpiredException
 ):
     """
     Handles TokenExpiredException and shows the error details.
