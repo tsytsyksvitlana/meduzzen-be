@@ -3,16 +3,13 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, Header
 from jose import JWTError, jwt
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.config.settings import settings
-from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.auth import (
     AuthorizationException,
     TokenExpiredException
 )
-from web_app.repositories.user_repository import UserRepository
-from web_app.services.users.user_service import UserService
+from web_app.services.users.user_service import UserService, get_user_service
 from web_app.utils.token_decoders.auth_zero_decoder import AuthZeroTokenDecoder
 from web_app.utils.token_decoders.custom_token_decoder import (
     CustomTokenDecoder
@@ -32,12 +29,6 @@ def create_access_token(data: dict):
         settings.auth_jwt.SECRET_KEY,
         algorithm=settings.auth_jwt.ALGORITHM
     )
-
-
-async def get_user_service(
-    session: AsyncSession = Depends(pg_helper.session_getter)
-) -> UserService:
-    return UserService(user_repository=UserRepository(session))
 
 
 async def get_current_user(

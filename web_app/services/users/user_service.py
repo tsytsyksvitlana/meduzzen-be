@@ -1,3 +1,7 @@
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.users import (
     UserAlreadyExistsException,
     UserEmailNotFoundException,
@@ -72,3 +76,9 @@ class UserService:
             password=PasswordManager.return_default_password()
         )
         return await self.user_repository.create_obj(new_user)
+
+
+def get_user_service(
+    session: AsyncSession = Depends(pg_helper.session_getter)
+) -> UserService:
+    return UserService(user_repository=UserRepository(session))
