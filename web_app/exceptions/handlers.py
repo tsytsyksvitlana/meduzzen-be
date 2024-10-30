@@ -5,22 +5,37 @@ from web_app.exceptions.auth import (
     AuthorizationException,
     TokenExpiredException
 )
-from web_app.exceptions.base import (
-    ObjectAlreadyExistsException,
-    ObjectNotFoundException
+from web_app.exceptions.base import ObjectAlreadyExistsException
+from web_app.exceptions.users import (
+    UserEmailNotFoundException,
+    UserIdNotFoundException
 )
 
 
-async def handle_object_not_found_exception(
-    request: Request, exc: ObjectNotFoundException
+async def handle_user_id_not_found_exception(
+    request: Request, exc: UserIdNotFoundException
 ):
     """
-    Handles ObjectNotFoundException and shows the error details.
+    Handles UserIdNotFoundException and shows the error details.
     """
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content={
-            "detail": f"{exc.object_type} with ID {exc.object_id} not found."
+            "detail": f"User with ID {exc.object_id} not found."
+        },
+    )
+
+
+async def handle_user_email_not_found_exception(
+    request: Request, exc: UserEmailNotFoundException
+):
+    """
+    Handles UserEmailNotFoundException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "detail": f"User with email {exc.object_id} not found."
         },
     )
 

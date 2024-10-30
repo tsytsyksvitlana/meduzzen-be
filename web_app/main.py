@@ -13,15 +13,17 @@ from web_app.exceptions.auth import (
     AuthorizationException,
     TokenExpiredException
 )
-from web_app.exceptions.base import (
-    ObjectAlreadyExistsException,
-    ObjectNotFoundException
-)
+from web_app.exceptions.base import ObjectAlreadyExistsException
 from web_app.exceptions.handlers import (
     handle_authorization_exception,
     handle_object_already_exists_exception,
-    handle_object_not_found_exception,
-    handle_token_expired_exception
+    handle_token_expired_exception,
+    handle_user_email_not_found_exception,
+    handle_user_id_not_found_exception
+)
+from web_app.exceptions.users import (
+    UserEmailNotFoundException,
+    UserIdNotFoundException
 )
 from web_app.routers.auth import router as auth_router
 from web_app.routers.healthcheck import router as router
@@ -96,12 +98,20 @@ async def http_exception_handler(
     )
 
 
-@app.exception_handler(ObjectNotFoundException)
-async def object_not_found_handler(
+@app.exception_handler(UserIdNotFoundException)
+async def user_id_not_found_handler(
     request: Request,
-    exc: ObjectNotFoundException
+    exc: UserIdNotFoundException
 ):
-    return await handle_object_not_found_exception(request, exc)
+    return await handle_user_id_not_found_exception(request, exc)
+
+
+@app.exception_handler(UserEmailNotFoundException)
+async def user_email_not_found_handler(
+    request: Request,
+    exc: UserEmailNotFoundException
+):
+    return await handle_user_email_not_found_exception(request, exc)
 
 
 @app.exception_handler(ObjectAlreadyExistsException)

@@ -1,6 +1,7 @@
 from web_app.exceptions.users import (
     UserAlreadyExistsException,
-    UserNotFoundException
+    UserIdNotFoundException,
+    UserEmailNotFoundException
 )
 from web_app.models import User
 from web_app.repositories.user_repository import UserRepository
@@ -15,7 +16,7 @@ class UserService:
     async def get_user_by_id(self, user_id: int) -> User:
         user = await self.user_repository.get_obj_by_id(user_id)
         if not user:
-            raise UserNotFoundException(user_id)
+            raise UserIdNotFoundException(user_id)
         return user
 
     async def get_users(self, offset: int, limit: int):
@@ -56,7 +57,7 @@ class UserService:
     async def get_user_by_email(self, email: str) -> User:
         user = await self.user_repository.get_user_by_email(email)
         if not user:
-            raise UserNotFoundException(email)
+            raise UserEmailNotFoundException(email)
         return user
 
     async def create_user_by_email(self, email: str) -> User:
