@@ -53,15 +53,20 @@ async def test_user_service_get_user_by_id(
 
 async def test_user_service_update_user(
     db_session: AsyncSession,
-    create_test_users
+    create_test_users,
+    token_first_user
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
 
     user_to_update = create_test_users[0]
-
     user_update = UserUpdateRequestModel(first_name="Emma", last_name="Brown")
-    updated_user = await user_service.update_user(user_to_update.id, user_update)
+
+    updated_user = await user_service.update_user(
+        user_to_update.id,
+        user_update,
+        current_user=user_to_update
+    )
 
     assert updated_user.first_name == "Emma"
     assert updated_user.last_name == "Brown"
@@ -69,13 +74,16 @@ async def test_user_service_update_user(
 
 async def test_user_service_delete_user(
     db_session: AsyncSession,
-    create_test_users
+    create_test_users,
+    token_first_user
 ):
     user_repository = UserRepository(session=db_session)
     user_service = UserService(user_repository=user_repository)
 
     user_to_delete = create_test_users[0]
-    await user_service.delete_user(user_to_delete.id)
+    await user_service.delete_user(
+        user_to_delete.id, current_user=user_to_delete
+    )
 
     with pytest.raises(UserIdNotFoundException):
         await user_service.get_user_by_id(user_to_delete.id)

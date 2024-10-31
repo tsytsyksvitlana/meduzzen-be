@@ -16,10 +16,10 @@ from web_app.exceptions.base import (
 )
 from web_app.exceptions.handlers import (
     handle_authorization_exception,
+    handle_invalid_field_exception,
     handle_object_already_exists_exception,
     handle_object_not_found_exception,
-    handle_permission_denied_exception,
-    handle_invalid_field_exception
+    handle_permission_denied_exception
 )
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.validation import InvalidFieldException

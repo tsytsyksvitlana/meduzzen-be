@@ -109,6 +109,17 @@ async def create_test_users(db_session: AsyncSession):
     return created_users
 
 
+@pytest.fixture
+async def token_first_user(client: AsyncClient, create_test_users):
+    user = create_test_users[0]
+    login_response = await client.post(
+        "/auth/login",
+        json={"email": user.email, "password": "ggddHHHSDfd234/"},
+    )
+    access_token = login_response.json().get("access_token")
+    return access_token
+
+
 @pytest.fixture(scope="function")
 def anyio_backend():
     return "asyncio"

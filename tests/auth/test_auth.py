@@ -19,7 +19,7 @@ async def test_get_current_user_with_valid_token(client: AsyncClient, create_tes
         json={"email": "john.doe@example.com", "password": "ggddHHHSDfd234/"},
     )
 
-    if login_response.status_code != 200:
+    if login_response.status_code != status.HTTP_200_OK:
         logger.error(
             f"Login failed: {login_response.status_code}, {login_response.json()}"
         )
@@ -31,7 +31,7 @@ async def test_get_current_user_with_valid_token(client: AsyncClient, create_tes
         "/auth/me", headers={"Authorization": f"Bearer {access_token}"}
     )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json().get("user").get("email") == "john.doe@example.com"
 
 
