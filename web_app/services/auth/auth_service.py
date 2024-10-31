@@ -31,6 +31,17 @@ class AuthService:
             raise UserEmailNotFoundException(email)
         return db_user
 
+    async def change_password(
+        self, current_user: User, old_password: str, new_password: str
+    ) -> None:
+        if not PasswordManager.verify_password(
+            old_password, current_user.password
+        ):
+            raise AuthorizationException(detail="Uncorrect password.")
+        await self.user_repository.update_user_password(
+            current_user, new_password
+        )
+
 
 def get_auth_service(
     session: AsyncSession = Depends(pg_helper.session_getter)

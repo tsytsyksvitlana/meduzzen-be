@@ -6,9 +6,7 @@ from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
-from web_app.exceptions.permission import (
-    PermissionDeniedException
-)
+from web_app.exceptions.permission import PermissionDeniedException
 
 
 async def handle_object_not_found_exception(

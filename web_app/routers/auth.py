@@ -9,6 +9,7 @@ from web_app.schemas.user import (
     SignInRequestModel,
     SignUpRequestModel,
     UserDetailResponse,
+    UserPasswordChange,
     UserSchema
 )
 from web_app.services.auth.auth_service import AuthService, get_auth_service
@@ -71,3 +72,16 @@ async def read_users_me(
         last_activity_at=user.last_activity_at
     )
     return UserDetailResponse(user=user_schema)
+
+
+@router.put("/change_password", status_code=status.HTTP_200_OK)
+async def change_password(
+    user_password_change: UserPasswordChange,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    await auth_service.change_password(
+        current_user,
+        user_password_change.old_password,
+        user_password_change.new_password
+    )

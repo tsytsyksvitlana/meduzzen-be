@@ -10,7 +10,7 @@ from web_app.schemas.user import (
     UserUpdateRequestModel
 )
 from web_app.services.users.user_service import UserService
-from web_app.utils.auth import get_user_service, get_current_user
+from web_app.utils.auth import get_current_user, get_user_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -68,12 +68,13 @@ async def get_user(
 async def update_user(
     user_id: int,
     user_update: UserUpdateRequestModel,
+    current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service)
 ) -> UserDetailResponse:
     """
     Update an existing user's details.
     """
-    user = await user_service.update_user(user_id, user_update)
+    user = await user_service.update_user(user_id, user_update, current_user)
     logger.info(f"Updated user with ID {user_id}.")
     user_schema = UserSchema(
         id=user.id,

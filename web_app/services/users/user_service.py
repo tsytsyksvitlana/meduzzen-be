@@ -2,12 +2,12 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.db.postgres_helper import postgres_helper as pg_helper
+from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.users import (
     UserEmailNotFoundException,
     UserIdAlreadyExistsException,
     UserIdNotFoundException
 )
-from web_app.exceptions.permission import PermissionDeniedException
 from web_app.models import User
 from web_app.repositories.user_repository import UserRepository
 from web_app.schemas.user import SignUpRequestModel, UserUpdateRequestModel
@@ -46,14 +46,18 @@ class UserService:
         return await self.user_repository.create_obj(new_user)
 
     async def update_user(
-            self, user_id: int, user_update: UserUpdateRequestModel
+        self,
+        user_id: int,
+        user_update: UserUpdateRequestModel,
+        current_user: User
     ) -> User:
-        user = await self.get_user_by_id(user_id)
+        if current_user.id != user_id:
+            raise PermissionDeniedException()
         if user_update.first_name:
-            user.first_name = user_update.first_name
+            current_user.first_name = user_update.first_name
         if user_update.last_name:
-            user.last_name = user_update.last_name
-        return await self.user_repository.update_obj(user, user_id)
+            current_user.last_name = user_update.last_name
+        return await self.user_repository.update_obj(current_user, user_id)
 
     async def delete_user(self, user_id: int, current_user: User) -> None:
         if current_user.id != user_id:
