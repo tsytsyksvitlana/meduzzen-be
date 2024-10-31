@@ -90,7 +90,7 @@ async def create_test_users(db_session: AsyncSession):
             "last_name": "Smith",
             "email": "jane.smith@example.com",
             "password": "vdsfhDFDF/934",
-        },
+        }
     ]
     for data in users_data:
         hashed_password = PasswordManager.hash_password(data["password"])

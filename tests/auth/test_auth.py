@@ -5,8 +5,14 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 from jose import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.config.settings import settings
+from web_app.exceptions.auth import AuthorizationException
+from web_app.models import User
+from web_app.repositories.user_repository import UserRepository
+from web_app.services.auth.auth_service import AuthService
+from web_app.utils.password_manager import PasswordManager
 
 logger = logging.getLogger(__name__)
 
@@ -49,3 +55,61 @@ async def test_get_current_user_with_expired_token(client: AsyncClient, create_t
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Token has expired"}
+
+
+async def test_change_password_success(
+    db_session: AsyncSession, create_test_users
+):
+    user_repository = UserRepository(session=db_session)
+    auth_service = AuthService(user_repository=user_repository)
+
+    user = create_test_users[0]
+    new_password = "NewSecurePassword123!"
+    await auth_service.change_password(
+        user, "ggddHHHSDfd234/", new_password
+    )
+
+    updated_user = await user_repository.get_obj_by_id(user.id)
+    assert PasswordManager.verify_password(
+        new_password, updated_user.password
+    )
+
+
+async def test_change_password_incorrect_old_password(
+    db_session: AsyncSession, create_test_users
+):
+    user_repository = UserRepository(session=db_session)
+    auth_service = AuthService(user_repository=user_repository)
+
+    user = create_test_users[0]
+    with pytest.raises(AuthorizationException, match="Uncorrect password."):
+        await auth_service.change_password(
+            user, "wWr0ngOldPass/word", "NewSecurePassword123/"
+        )
+
+
+async def test_set_password_success(db_session: AsyncSession):
+    user_repository = UserRepository(session=db_session)
+    auth_service = AuthService(user_repository=user_repository)
+
+    user = User(
+        first_name="Jane",
+        last_name="Smith",
+        email="jane.smith@example.com",
+    )
+    await user_repository.create_obj(user)
+
+    password_to_set = "PasswordToSet123!"
+    await auth_service.set_password(user, password_to_set)
+
+    updated_user = await user_repository.get_obj_by_id(user.id)
+    assert PasswordManager.verify_password(password_to_set, updated_user.password)
+
+
+async def test_set_password_when_password_exists(db_session: AsyncSession, create_test_users):
+    user_repository = UserRepository(session=db_session)
+    auth_service = AuthService(user_repository=user_repository)
+
+    user = create_test_users[0]
+    with pytest.raises(AuthorizationException, match="User already has a password."):
+        await auth_service.set_password(user, "NewPassword123!")
