@@ -125,3 +125,21 @@ class UserPasswordChange(BaseModel):
                 detail="New password cannot match the old one.",
             )
         return values
+
+
+class UserNewPassword(BaseModel):
+    """
+    Schema for setting password.
+    """
+    password: str
+
+    @field_validator("password")
+    def validate_password(cls, v):
+        if not PASSWORD_REGEX.match(v):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Password must be 8-24 characters long, contain digits, "
+                "lowercase and uppercase letters of any alphabet, "
+                "and special characters except for @, \", ', <, >.",
+            )
+        return v

@@ -9,6 +9,7 @@ from web_app.schemas.user import (
     SignInRequestModel,
     SignUpRequestModel,
     UserDetailResponse,
+    UserNewPassword,
     UserPasswordChange,
     UserSchema
 )
@@ -85,3 +86,16 @@ async def change_password(
         user_password_change.old_password,
         user_password_change.new_password
     )
+    logger.info(f"User with ID {current_user.id} changed password.")
+    return {"message": "Password changed successfully"}
+
+
+@router.patch("/set_password", status_code=status.HTTP_200_OK)
+async def set_password(
+    user_password: UserNewPassword,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    await auth_service.set_password(current_user, user_password.password)
+    logger.info(f"User with ID {current_user.id} set password.")
+    return {"message": "Password set successfully"}

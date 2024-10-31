@@ -6,8 +6,6 @@ class PasswordManager:
     Class to hash and verify passwords.
     """
 
-    DEFAULT_PASSWORD: str = "MyDefaul1tPa33w0rD/"
-
     @staticmethod
     def hash_password(password: str) -> str:
         """
@@ -26,11 +24,3 @@ class PasswordManager:
             password.encode('utf-8'),
             hashed_password.encode('utf-8')
         )
-
-    @classmethod
-    def return_default_password(cls) -> str:
-        """
-        Create a user with a default password.
-        This method returns the hashed default password.
-        """
-        return cls.hash_password(cls.DEFAULT_PASSWORD)

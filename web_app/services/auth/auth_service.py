@@ -42,6 +42,18 @@ class AuthService:
             current_user, new_password
         )
 
+    # async def set_password(self, current_user: User, password: str):
+    #     if current_user.password is not None:
+    #         raise AuthorizationException(detail="User already have password.")
+    #     await self.user_repository.set_user_password(current_user, password)
+
+    async def set_password(self, current_user: User, password: str):
+        if password is None:
+            raise ValueError("Password cannot be None.")
+        if current_user.password is not None:
+            raise AuthorizationException(detail="User already has a password.")
+        await self.user_repository.set_user_password(current_user, password)
+
 
 def get_auth_service(
     session: AsyncSession = Depends(pg_helper.session_getter)

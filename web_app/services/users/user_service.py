@@ -79,8 +79,7 @@ class UserService:
         new_user = User(
             first_name=email.split('@')[0],
             last_name="",
-            email=email,
-            password=PasswordManager.return_default_password()
+            email=email
         )
         return await self.user_repository.create_obj(new_user)
 
