@@ -7,6 +7,7 @@ from web_app.exceptions.users import (
     UserIdAlreadyExistsException,
     UserIdNotFoundException
 )
+from web_app.exceptions.permission import PermissionDeniedException
 from web_app.models import User
 from web_app.repositories.user_repository import UserRepository
 from web_app.schemas.user import SignUpRequestModel, UserUpdateRequestModel
@@ -54,7 +55,9 @@ class UserService:
             user.last_name = user_update.last_name
         return await self.user_repository.update_obj(user, user_id)
 
-    async def delete_user(self, user_id: int):
+    async def delete_user(self, user_id: int, current_user: User) -> None:
+        if current_user.id != user_id:
+            raise PermissionDeniedException()
         user = await self.get_user_by_id(user_id)
         await self.user_repository.delete_obj(user.id)
 
