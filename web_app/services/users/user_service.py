@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.users import (
-    UserAlreadyExistsException,
     UserEmailNotFoundException,
+    UserIdAlreadyExistsException,
     UserIdNotFoundException
 )
 from web_app.models import User
@@ -33,7 +33,7 @@ class UserService:
             user_data.email
         )
         if existing_user:
-            raise UserAlreadyExistsException(user_data.email)
+            raise UserIdAlreadyExistsException(user_data.email)
 
         hashed_password = PasswordManager.hash_password(user_data.password)
         new_user = User(

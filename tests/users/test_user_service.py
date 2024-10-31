@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.exceptions.users import (
-    UserAlreadyExistsException,
+    UserIdAlreadyExistsException,
     UserIdNotFoundException
 )
 from web_app.repositories.user_repository import UserRepository
@@ -31,7 +31,7 @@ async def test_user_service_create_user(
     assert created_user.email == user_data.email
     assert created_user.first_name == user_data.first_name
 
-    with pytest.raises(UserAlreadyExistsException):
+    with pytest.raises(UserIdAlreadyExistsException):
         await user_service.create_user(user_data)
 
 

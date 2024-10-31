@@ -9,21 +9,15 @@ from fastapi.security import HTTPBearer
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
-from web_app.exceptions.auth import (
-    AuthorizationException,
-    TokenExpiredException
+from web_app.exceptions.auth import AuthorizationException
+from web_app.exceptions.base import (
+    ObjectAlreadyExistsException,
+    ObjectNotFoundException
 )
-from web_app.exceptions.base import ObjectAlreadyExistsException
 from web_app.exceptions.handlers import (
     handle_authorization_exception,
     handle_object_already_exists_exception,
-    handle_token_expired_exception,
-    handle_user_email_not_found_exception,
-    handle_user_id_not_found_exception
-)
-from web_app.exceptions.users import (
-    UserEmailNotFoundException,
-    UserIdNotFoundException
+    handle_object_not_found_exception
 )
 from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
@@ -84,19 +78,13 @@ async def http_exception_handler(
 
 
 app.add_exception_handler(
-    UserIdNotFoundException, handle_user_id_not_found_exception
-)
-app.add_exception_handler(
-    UserEmailNotFoundException, handle_user_email_not_found_exception
+    ObjectNotFoundException, handle_object_not_found_exception
 )
 app.add_exception_handler(
     ObjectAlreadyExistsException, handle_object_already_exists_exception
 )
 app.add_exception_handler(
     AuthorizationException, handle_authorization_exception
-)
-app.add_exception_handler(
-    TokenExpiredException, handle_token_expired_exception
 )
 
 
