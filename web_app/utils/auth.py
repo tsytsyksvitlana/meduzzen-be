@@ -9,6 +9,7 @@ from web_app.exceptions.auth import (
     AuthorizationException,
     TokenExpiredException
 )
+from web_app.models import User
 from web_app.services.users.user_service import UserService, get_user_service
 from web_app.utils.token_decoders.auth_zero_decoder import AuthZeroTokenDecoder
 from web_app.utils.token_decoders.custom_token_decoder import (
@@ -32,9 +33,9 @@ def create_access_token(data: dict):
 
 
 async def get_current_user(
-        authorization: str = Header(None),
-        user_service: UserService = Depends(get_user_service)
-):
+    authorization: str = Header(None),
+    user_service: UserService = Depends(get_user_service)
+) -> User:
     if not authorization:
         raise AuthorizationException(detail="Authorization header missing")
 
@@ -56,10 +57,10 @@ async def get_current_user(
         payload = decoder.decode(token)
 
         if email := payload.get("email") or payload.get("sub"):
-            await user_service.create_user_by_email(email)
+            user = await user_service.create_user_by_email(email)
 
-        logger.info(f"Authenticated user: {email}")
-        return {"email": email}
+            logger.info(f"Authenticated user: {email}")
+            return user
 
     except JWTError as e:
         logger.error(f"JWT error: {str(e)}")

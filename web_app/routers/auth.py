@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, status
 
+from web_app.models import User
 from web_app.routers.users import get_user_service
 from web_app.schemas.token import Token
 from web_app.schemas.user import (
@@ -56,11 +57,10 @@ async def login(
 
 @router.get("/me", response_model=UserDetailResponse)
 async def read_users_me(
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    email = current_user.get("email")
-    user = await auth_service.get_user_profile(email)
+    user = await auth_service.get_user_profile(current_user.email)
     user_schema = UserSchema(
         id=user.id,
         first_name=user.first_name,
