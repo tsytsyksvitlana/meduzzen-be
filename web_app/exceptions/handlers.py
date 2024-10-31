@@ -1,4 +1,4 @@
-from fastapi import Request, status, APIRouter
+from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from web_app.exceptions.auth import (
@@ -80,21 +80,21 @@ async def handle_token_expired_exception(
     )
 
 
-async def handle_exception(request: Request, exc) -> JSONResponse:
-    handlers = {
-        UserIdNotFoundException: handle_user_id_not_found_exception,
-        UserEmailNotFoundException: handle_user_email_not_found_exception,
-        ObjectAlreadyExistsException: handle_object_already_exists_exception,
-        AuthorizationException: handle_authorization_exception,
-        TokenExpiredException: handle_token_expired_exception,
-    }
-
-    handler = handlers.get(type(exc))
-
-    if handler:
-        return await handler(request, exc)
-    else:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "An unexpected error occurred."}
-        )
+# async def handle_exception(request: Request, exc) -> JSONResponse:
+#     handlers = {
+#         UserIdNotFoundException: handle_user_id_not_found_exception,
+#         UserEmailNotFoundException: handle_user_email_not_found_exception,
+#         ObjectAlreadyExistsException: handle_object_already_exists_exception,
+#         AuthorizationException: handle_authorization_exception,
+#         TokenExpiredException: handle_token_expired_exception,
+#     }
+#
+#     handler = handlers.get(type(exc))
+#
+#     if handler:
+#         return await handler(request, exc)
+#     else:
+#         return JSONResponse(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             content={"detail": "An unexpected error occurred."}
+#         )
