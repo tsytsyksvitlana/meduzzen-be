@@ -83,18 +83,6 @@ async def http_exception_handler(
     )
 
 
-# @app.exception_handler(UserIdNotFoundException)
-# async def exception_handler(
-#     request: Request,
-#     exc: UserIdNotFoundException
-# ) -> JSONResponse:
-#     """
-#     Handles unhandled exceptions and logs the error details.
-#     Returns a custom response with an error message
-#     or 500 if not properly handled.
-#     """
-#     return await handle_exception(request, exc)
-
 app.add_exception_handler(
     UserIdNotFoundException, handle_user_id_not_found_exception
 )
