@@ -2,8 +2,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.exceptions.users import (
-    UserAlreadyExistsException,
-    UserNotFoundException
+    UserIdAlreadyExistsException,
+    UserIdNotFoundException
 )
 from web_app.repositories.user_repository import UserRepository
 from web_app.schemas.user import SignUpRequestModel, UserUpdateRequestModel
@@ -31,7 +31,7 @@ async def test_user_service_create_user(
     assert created_user.email == user_data.email
     assert created_user.first_name == user_data.first_name
 
-    with pytest.raises(UserAlreadyExistsException):
+    with pytest.raises(UserIdAlreadyExistsException):
         await user_service.create_user(user_data)
 
 
@@ -47,7 +47,7 @@ async def test_user_service_get_user_by_id(
 
     assert fetched_user.email == user_from_fixture.email
 
-    with pytest.raises(UserNotFoundException):
+    with pytest.raises(UserIdNotFoundException):
         await user_service.get_user_by_id(-1)
 
 
@@ -77,7 +77,7 @@ async def test_user_service_delete_user(
     user_to_delete = create_test_users[0]
     await user_service.delete_user(user_to_delete.id)
 
-    with pytest.raises(UserNotFoundException):
+    with pytest.raises(UserIdNotFoundException):
         await user_service.get_user_by_id(user_to_delete.id)
 
 

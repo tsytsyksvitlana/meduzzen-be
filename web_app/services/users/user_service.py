@@ -1,6 +1,11 @@
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.users import (
-    UserAlreadyExistsException,
-    UserNotFoundException
+    UserEmailNotFoundException,
+    UserIdAlreadyExistsException,
+    UserIdNotFoundException
 )
 from web_app.models import User
 from web_app.repositories.user_repository import UserRepository
@@ -15,7 +20,7 @@ class UserService:
     async def get_user_by_id(self, user_id: int) -> User:
         user = await self.user_repository.get_obj_by_id(user_id)
         if not user:
-            raise UserNotFoundException(user_id)
+            raise UserIdNotFoundException(user_id)
         return user
 
     async def get_users(self, offset: int, limit: int):
@@ -28,7 +33,7 @@ class UserService:
             user_data.email
         )
         if existing_user:
-            raise UserAlreadyExistsException(user_data.email)
+            raise UserIdAlreadyExistsException(user_data.email)
 
         hashed_password = PasswordManager.hash_password(user_data.password)
         new_user = User(
@@ -52,3 +57,28 @@ class UserService:
     async def delete_user(self, user_id: int):
         user = await self.get_user_by_id(user_id)
         await self.user_repository.delete_obj(user.id)
+
+    async def get_user_by_email(self, email: str) -> User:
+        user = await self.user_repository.get_user_by_email(email)
+        if not user:
+            raise UserEmailNotFoundException(email)
+        return user
+
+    async def create_user_by_email(self, email: str) -> User:
+        existing_user = await self.user_repository.get_user_by_email(email)
+        if existing_user:
+            return existing_user
+
+        new_user = User(
+            first_name=email.split('@')[0],
+            last_name="",
+            email=email,
+            password=PasswordManager.return_default_password()
+        )
+        return await self.user_repository.create_obj(new_user)
+
+
+def get_user_service(
+    session: AsyncSession = Depends(pg_helper.session_getter)
+) -> UserService:
+    return UserService(user_repository=UserRepository(session))

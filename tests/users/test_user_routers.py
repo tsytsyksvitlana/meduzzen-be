@@ -50,7 +50,7 @@ async def test_create_user(
         email="alice.johnson@example.com",
         password="securePassword123!"
     )
-    response = await client.post("/users/", json=user_data.dict())
+    response = await client.post("/auth/register", json=user_data.model_dump())
     assert response.status_code == 201
     assert response.json()['user']['email'] == user_data.email
 
@@ -66,7 +66,7 @@ async def test_create_user_duplicate(
         email="john.doe@example.com",
         password="anotherPassword456!"
     )
-    response = await client.post("/users/", json=user_data.dict())
+    response = await client.post("/auth/register", json=user_data.model_dump())
     assert response.status_code == 409
 
 
