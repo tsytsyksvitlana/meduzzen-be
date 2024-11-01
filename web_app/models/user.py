@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, String, event
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from web_app.models.base import Base
 
@@ -30,6 +30,10 @@ class User(Base):
         DateTime(timezone=True),
         nullable=False,
         default=datetime.now(timezone.utc),
+    )
+
+    companies_membership = relationship(
+        "CompanyMembership", back_populates="user"
     )
 
     @staticmethod
