@@ -1,7 +1,7 @@
 import typing as t
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from web_app.models.base import Base
@@ -26,9 +26,6 @@ class CompanyMembership(Base):
     )
     role: Mapped[Role] = mapped_column(
         String, index=True, nullable=False, default="Member"
-    )
-    is_active: Mapped[bool] = mapped_column(
-        Boolean, default=True, nullable=False
     )
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
