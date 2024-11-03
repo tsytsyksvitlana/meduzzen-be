@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, subqueryload
 
@@ -30,8 +30,21 @@ class CompanyRepository(BaseRepository[Company]):
                 subqueryload(Company.members)
                 .joinedload(CompanyMembership.user)
             )
+            .where(Company.is_visible)
             .offset(offset)
             .limit(limit)
         )
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def toggle_visibility(self, company: Company):
+        company.is_visible = not company.is_visible
+
+    async def update_obj(self, company_id: int, company_data: dict):
+        query = (
+            update(Company)
+            .where(Company.id == company_id)
+            .values(**company_data)
+            .execution_options(synchronize_session="fetch")
+        )
+        await self.session.execute(query)

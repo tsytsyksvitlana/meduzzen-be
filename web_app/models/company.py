@@ -28,7 +28,11 @@ class Company(Base):
         onupdate=datetime.now(timezone.utc),
     )
 
-    members = relationship("CompanyMembership", back_populates="company")
+    members = relationship(
+        "CompanyMembership",
+        back_populates="company",
+        cascade="all, delete-orphan"
+    )
 
     @staticmethod
     def update_timestamp(mapper, connection, target):

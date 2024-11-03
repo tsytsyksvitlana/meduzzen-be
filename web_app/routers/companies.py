@@ -1,13 +1,15 @@
 import logging
-from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from web_app.models import User
 from web_app.schemas.company import (
     CompanyCreateSchema,
     CompanyDetailSchema,
-    OwnerSchema, CompanyListResponse
+    CompanyInfoResponse,
+    CompanyListResponse,
+    CompanyUpdateSchema,
+    OwnerSchema
 )
 from web_app.services.companies.company_service import (
     CompanyService,
@@ -41,6 +43,7 @@ async def get_company(
     logger.info(f"Fetched company with ID {company_id} successfully.")
 
     company_schema = CompanyDetailSchema(
+        id=company.id,
         name=company.name,
         description=company.description,
         is_visible=company.is_visible,
@@ -66,6 +69,7 @@ async def list_companies(
     )
     company_schemas = [
         CompanyDetailSchema(
+            id=company.id,
             name=company.name,
             description=company.description,
             is_visible=company.is_visible,
@@ -95,3 +99,49 @@ async def create_company(
         return new_company
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+
+
+@router.patch("/toggle_visibility/{company_id}/")
+async def toggle_visibility(
+    company_id: int,
+    current_user: User = Depends(get_current_user),
+    company_service: CompanyService = Depends(get_company_service),
+):
+    company = await company_service.toggle_visibility(
+        company_id=company_id, current_user=current_user
+    )
+    logger.info(f"Company with ID {company_id} changed is_visible to {company.is_visible}")
+    return {"msg": "Visibility changed successfully."}
+
+
+@router.delete("/{company_id}/", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_company(
+    company_id: int,
+    current_user: User = Depends(get_current_user),
+    company_service: CompanyService = Depends(get_company_service),
+) -> None:
+    await company_service.delete_company(company_id, current_user)
+    logger.info(f"Deleted company with ID {company_id}.")
+
+
+@router.put("/{company_id}", response_model=CompanyInfoResponse)
+async def update_company(
+    company_id: int,
+    company_data: CompanyUpdateSchema,
+    current_user: User = Depends(get_current_user),
+    company_service: CompanyService = Depends(get_company_service),
+):
+    company = await company_service.update_company(
+        company_id, company_data, current_user
+    )
+    logger.info(f"Updated company with ID {company_id}.")
+    company_schema = CompanyInfoResponse(
+        id=company.id,
+        name=company.name,
+        description=company.description,
+        is_visible=company.is_visible,
+        address=company.address,
+        contact_email=company.contact_email,
+        phone_number=company.phone_number,
+    )
+    return company_schema

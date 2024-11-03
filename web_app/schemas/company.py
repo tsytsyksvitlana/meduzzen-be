@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic import BaseModel
 
 
@@ -18,6 +16,7 @@ class OwnerSchema(BaseModel):
 
 
 class CompanyDetailSchema(BaseModel):
+    id: int
     name: str
     description: str
     is_visible: bool
@@ -28,5 +27,21 @@ class CompanyDetailSchema(BaseModel):
 
 
 class CompanyListResponse(BaseModel):
-    list: List[CompanyDetailSchema]
+    list: list[CompanyDetailSchema]
     total_count: int
+
+
+class CompanyUpdateSchema(BaseModel):
+    name: str | None
+    description: str | None
+    address: str | None
+
+
+class CompanyInfoResponse(BaseModel):
+    id: int
+    name: str
+    description: str
+    is_visible: bool
+    address: str
+    contact_email: str
+    phone_number: str
