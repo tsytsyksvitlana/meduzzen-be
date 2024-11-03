@@ -5,23 +5,23 @@ Revises: 4e55ea625d3f
 Create Date: 2024-11-01 19:54:21.541350
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = '292d46b37b57'
-down_revision: Union[str, None] = '4e55ea625d3f'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '4e55ea625d3f'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
     op.create_table('Company',
     sa.Column('name', sa.String(length=50), nullable=False),
     sa.Column('description', sa.String(length=200), nullable=False),
-    sa.Column('is_visable', sa.Boolean(), nullable=False),
+    sa.Column('is_visible', sa.Boolean(), nullable=False),
     sa.Column('address', sa.String(length=100), nullable=True),
     sa.Column('contact_email', sa.String(length=100), nullable=True),
     sa.Column('phone_number', sa.String(length=20), nullable=True),

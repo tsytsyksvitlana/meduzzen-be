@@ -6,6 +6,6 @@ __all__ = (
 )
 
 from .base import Base
-from .user import User
 from .company import Company
 from .company_membership import CompanyMembership
+from .user import User

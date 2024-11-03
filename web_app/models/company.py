@@ -12,7 +12,7 @@ class Company(Base):
     """
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     description: Mapped[str] = mapped_column(String(200), nullable=False)
-    is_visable: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_visible: Mapped[bool] = mapped_column(Boolean, nullable=False)
     address: Mapped[str] = mapped_column(String(100), nullable=True)
     contact_email: Mapped[str] = mapped_column(String(100), nullable=True)
     phone_number: Mapped[str] = mapped_column(String(20), nullable=True)
