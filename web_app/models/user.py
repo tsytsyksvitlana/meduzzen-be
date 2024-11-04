@@ -35,6 +35,16 @@ class User(Base):
     companies_membership = relationship(
         "CompanyMembership", back_populates="user"
     )
+    invitations_received = relationship(
+        "Invitation",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    join_requests = relationship(
+        "JoinRequest",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """

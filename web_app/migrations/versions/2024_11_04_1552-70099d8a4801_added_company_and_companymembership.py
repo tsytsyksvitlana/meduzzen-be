@@ -5,16 +5,15 @@ Revises: 4e55ea625d3f
 Create Date: 2024-11-04 15:52:48.317258
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = '70099d8a4801'
-down_revision: Union[str, None] = '4e55ea625d3f'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '4e55ea625d3f'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

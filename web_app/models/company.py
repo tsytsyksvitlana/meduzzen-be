@@ -33,6 +33,16 @@ class Company(Base):
         back_populates="company",
         cascade="all, delete-orphan"
     )
+    invitations = relationship(
+        "Invitation",
+        back_populates="company",
+        cascade="all, delete-orphan"
+    )
+    join_requests = relationship(
+        "JoinRequest",
+        back_populates="company",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """

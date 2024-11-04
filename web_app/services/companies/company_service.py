@@ -33,7 +33,7 @@ class CompanyService:
         membership = await self.membership_repository.get_user_company_membership(
             company_id=company_id, user_id=user.id
         )
-        if not membership or membership.role != Role.OWNER:
+        if not membership or membership.role != Role.OWNER.value:
             raise PermissionDeniedException()
 
     async def get_company_with_members(self, company_id: int):
@@ -44,7 +44,7 @@ class CompanyService:
         members = await self.membership_repository.get_memberships_by_company_id(company_id)
         company.members = members
 
-        owners = list(filter(lambda membership: membership.role == Role.OWNER, members))
+        owners = list(filter(lambda membership: membership.role == Role.OWNER.value, members))
         if not owners:
             raise OwnerNotFoundException(company_id)
         company.owner = owners[0].user
@@ -59,7 +59,7 @@ class CompanyService:
         for company in companies:
             owners = [
                 membership.user for membership in company.members
-                if membership.role == Role.OWNER
+                if membership.role == Role.OWNER.value
             ]
             company.owner = owners[0] if owners else None
 
@@ -77,7 +77,7 @@ class CompanyService:
             await self.company_repository.session.refresh(new_company)
 
             membership = CompanyMembership(
-                company_id=new_company.id, user_id=current_user.id, role=Role.OWNER
+                company_id=new_company.id, user_id=current_user.id, role=Role.OWNER.value
             )
             await self.membership_repository.create_obj(membership)
 
