@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,11 +62,8 @@ class CompanyService:
 
             await self.membership_repository.session.commit()
             return new_company
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             await self.company_repository.session.rollback()
-            raise HTTPException(
-                status_code=400, detail=f"Failed to create company: {str(e)}"
-            )
 
     async def toggle_visibility(self, company_id: int, current_user: User) -> Company:
         await self.check_is_owner(company_id, current_user)

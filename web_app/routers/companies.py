@@ -94,11 +94,12 @@ async def create_company(
     current_user: User = Depends(get_current_user),
     company_service: CompanyService = Depends(get_company_service),
 ):
-    try:
-        new_company = await company_service.create_company(current_user, company_data)
-        return new_company
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+    new_company = await company_service.create_company(current_user, company_data)
+    if new_company is None:
+        logger.error("An error occurred while creating company.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    logger.info(f"Created company with ID {new_company.id} successfully.")
+    return new_company
 
 
 @router.patch("/toggle_visibility/{company_id}/")
