@@ -14,7 +14,7 @@ from tests.config.postgres_config import test_postgres_settings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
-from web_app.models import User
+from web_app.models import Company, User
 from web_app.models.base import Base
 from web_app.utils.password_manager import PasswordManager
 
@@ -107,6 +107,37 @@ async def create_test_users(db_session: AsyncSession):
     created_users = result.scalars().all()
 
     return created_users
+
+
+@pytest.fixture(scope="function")
+async def create_test_companies(db_session: AsyncSession):
+    companies_data = [
+        {
+            "name": "Test Company 1",
+            "description": "Description for Test Company 1.",
+            "is_visible": True,
+            "address": "100 Test St.",
+            "contact_email": "contact@testcompany1.com",
+            "phone_number": "1112223333",
+        },
+        {
+            "name": "Test Company 2",
+            "description": "Description for Test Company 2.",
+            "is_visible": False,
+            "address": "200 Test Ave.",
+            "contact_email": "contact@testcompany2.com",
+            "phone_number": "4445556666",
+        }
+    ]
+    for data in companies_data:
+        new_company = Company(**data)
+        db_session.add(new_company)
+    await db_session.commit()
+
+    result = await db_session.execute(select(Company))
+    created_companies = result.scalars().all()
+
+    return created_companies
 
 
 @pytest.fixture

@@ -71,22 +71,17 @@ class CompanyService:
     async def toggle_visibility(self, company_id: int, current_user: User) -> Company:
         await self.check_is_owner(company_id, current_user)
 
-        company = await self.company_repository.get_obj_by_id(company_id)
-        if not company:
-            raise CompanyNotFoundException(company_id)
+        company = await self.get_company(company_id)
 
-        company.is_visible = not company.is_visible
         await self.company_repository.toggle_visibility(company)
         await self.company_repository.session.commit()
         await self.company_repository.session.refresh(company)
+
         return company
 
     async def delete_company(self, company_id: int, current_user: User):
         await self.check_is_owner(company_id, current_user)
 
-        company = await self.company_repository.get_obj_by_id(company_id)
-        if not company:
-            raise CompanyNotFoundException(company_id)
         await self.company_repository.delete_obj(company_id)
         await self.company_repository.session.commit()
 
@@ -99,17 +94,16 @@ class CompanyService:
         await self.check_is_owner(company_id, current_user)
 
         company = await self.company_repository.get_obj_by_id(company_id)
-        if not company:
-            raise CompanyNotFoundException(company_id)
 
         updated_fields = {
-            "name": company_data.name if company_data.name is not None else company.name,
-            "description": company_data.description if company_data.description is not None else company.description,
-            "address": company_data.address if company_data.address is not None else company.address,
+            "name": company_data.name or company.name,
+            "description": company_data.description or company.description,
+            "address": company_data.address or company.address,
         }
 
         await self.company_repository.update_obj(company_id, updated_fields)
         await self.company_repository.session.commit()
+        await self.company_repository.session.refresh(company)
 
         updated_company = await self.company_repository.get_obj_by_id(company_id)
 

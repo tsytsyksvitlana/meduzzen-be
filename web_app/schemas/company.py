@@ -32,9 +32,9 @@ class CompanyListResponse(BaseModel):
 
 
 class CompanyUpdateSchema(BaseModel):
-    name: str | None
-    description: str | None
-    address: str | None
+    name: str | None = None
+    description: str | None = None
+    address: str | None = None
 
 
 class CompanyInfoResponse(BaseModel):

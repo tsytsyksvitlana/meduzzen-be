@@ -39,6 +39,7 @@ class CompanyRepository(BaseRepository[Company]):
 
     async def toggle_visibility(self, company: Company):
         company.is_visible = not company.is_visible
+        await self.session.merge(company)
 
     async def update_obj(self, company_id: int, company_data: dict):
         query = (
