@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from web_app.models import User
 from web_app.schemas.company import (
@@ -27,18 +27,7 @@ async def get_company(
         company_id: int,
         company_service: CompanyService = Depends(get_company_service),
 ):
-    company = await company_service.get_company(company_id)
-
-    owner_membership = next(
-        (membership for membership in company.members
-         if membership.role == "Owner"), None
-    )
-
-    if not owner_membership or not owner_membership.user:
-        raise HTTPException(
-            status_code=404,
-            detail="Owner not found for this company."
-        )
+    company = await company_service.get_company_with_members(company_id)
 
     logger.info(f"Fetched company with ID {company_id} successfully.")
 
@@ -51,8 +40,8 @@ async def get_company(
         contact_email=company.contact_email,
         phone_number=company.phone_number,
         owner=OwnerSchema(
-            first_name=owner_membership.user.first_name,
-            last_name=owner_membership.user.last_name,
+            first_name=company.owner.first_name,
+            last_name=company.owner.last_name,
         )
     )
     return company_schema
@@ -64,7 +53,7 @@ async def list_companies(
     offset: int = Query(0, ge=0),
     company_service: CompanyService = Depends(get_company_service),
 ):
-    companies, total_count = await company_service.get_companies(
+    companies, total_count = await company_service.get_companies_with_owners(
         limit=limit, offset=offset
     )
     company_schemas = [
@@ -77,11 +66,9 @@ async def list_companies(
             contact_email=company.contact_email,
             phone_number=company.phone_number,
             owner=OwnerSchema(
-                first_name=membership.user.first_name,
-                last_name=membership.user.last_name,
-            ) if (membership := next(
-                (m for m in company.members if m.role == "Owner"), None
-            )) else None,
+                first_name=company.owner.first_name,
+                last_name=company.owner.last_name,
+            ) if company.owner else None
         )
         for company in companies
     ]
@@ -95,9 +82,6 @@ async def create_company(
     company_service: CompanyService = Depends(get_company_service),
 ):
     new_company = await company_service.create_company(current_user, company_data)
-    if new_company is None:
-        logger.error("An error occurred while creating company.")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     logger.info(f"Created company with ID {new_company.id} successfully.")
     return new_company
 

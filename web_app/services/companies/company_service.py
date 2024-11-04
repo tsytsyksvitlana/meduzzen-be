@@ -3,7 +3,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.db.postgres_helper import postgres_helper as pg_helper
-from web_app.exceptions.companies import CompanyNotFoundException
+from web_app.exceptions.application import ApplicationErrorException
+from web_app.exceptions.companies import (
+    CompanyNotFoundException,
+    OwnerNotFoundException
+)
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.models import User
 from web_app.models.company import Company
@@ -13,6 +17,7 @@ from web_app.repositories.company_membership_repository import (
 )
 from web_app.repositories.company_repository import CompanyRepository
 from web_app.schemas.company import CompanyCreateSchema, CompanyUpdateSchema
+from web_app.schemas.roles import Role
 
 
 class CompanyService:
@@ -28,20 +33,36 @@ class CompanyService:
         membership = await self.membership_repository.get_user_company_membership(
             company_id=company_id, user_id=user.id
         )
-        if not membership or membership.role != "Owner":
+        if not membership or membership.role != Role.OWNER:
             raise PermissionDeniedException()
 
-    async def get_company(self, company_id: int):
+    async def get_company_with_members(self, company_id: int):
         company = await self.company_repository.get_obj_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)
+
+        members = await self.membership_repository.get_memberships_by_company_id(company_id)
+        company.members = members
+
+        owners = list(filter(lambda membership: membership.role == Role.OWNER, members))
+        if not owners:
+            raise OwnerNotFoundException(company_id)
+        company.owner = owners[0].user
         return company
 
-    async def get_companies(
-        self, limit: int, offset: int
+    async def get_companies_with_owners(
+            self, limit: int, offset: int
     ) -> tuple[list[Company], int]:
         companies = await self.company_repository.get_objs(offset=offset, limit=limit)
         total_count = await self.company_repository.get_obj_count()
+
+        for company in companies:
+            owners = [
+                membership.user for membership in company.members
+                if membership.role == Role.OWNER
+            ]
+            company.owner = owners[0] if owners else None
+
         return companies, total_count
 
     async def create_company(
@@ -56,7 +77,7 @@ class CompanyService:
             await self.company_repository.session.refresh(new_company)
 
             membership = CompanyMembership(
-                company_id=new_company.id, user_id=current_user.id, role="Owner"
+                company_id=new_company.id, user_id=current_user.id, role=Role.OWNER
             )
             await self.membership_repository.create_obj(membership)
 
@@ -64,11 +85,14 @@ class CompanyService:
             return new_company
         except SQLAlchemyError:
             await self.company_repository.session.rollback()
+            raise ApplicationErrorException(
+                "An error occurred while creating company."
+            )
 
     async def toggle_visibility(self, company_id: int, current_user: User) -> Company:
         await self.check_is_owner(company_id, current_user)
 
-        company = await self.get_company(company_id)
+        company = await self.get_company_with_members(company_id)
 
         await self.company_repository.toggle_visibility(company)
         await self.company_repository.session.commit()

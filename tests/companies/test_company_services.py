@@ -65,12 +65,12 @@ async def test_company_service_get_company(
     company_service = CompanyService(company_repository, membership_repository)
 
     company_from_fixture = create_test_companies[0]
-    fetched_company = await company_service.get_company(company_from_fixture.id)
+    fetched_company = await company_service.get_company_with_members(company_from_fixture.id)
 
     assert fetched_company.name == company_from_fixture.name
 
     with pytest.raises(CompanyNotFoundException):
-        await company_service.get_company(-1)
+        await company_service.get_company_with_members(-1)
 
 
 async def test_company_service_update_company(
@@ -119,7 +119,7 @@ async def test_company_service_toggle_visibility(
 
     await company_service.toggle_visibility(company_to_toggle.id, user)
 
-    toggled_company = await company_service.get_company(company_to_toggle.id)
+    toggled_company = await company_service.get_company_with_members(company_to_toggle.id)
 
     assert toggled_company.is_visible is False
 

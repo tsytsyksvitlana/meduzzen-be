@@ -18,7 +18,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.alter_column(
-        'users',
+        'User',
         'password',
         existing_type=sa.VARCHAR(),
         nullable=True
@@ -27,7 +27,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.alter_column(
-        'users',
+        'User',
         'password',
         existing_type=sa.VARCHAR(),
         nullable=False

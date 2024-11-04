@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, String, event
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from web_app.models.base import Base
@@ -34,19 +34,8 @@ class Company(Base):
         cascade="all, delete-orphan"
     )
 
-    @staticmethod
-    def update_timestamp(mapper, connection, target):
-        """
-        Updates the updated_at timestamp before the Company Object
-        is updated in the database.
-        """
-        target.updated_at = datetime.now(timezone.utc)
-
     def __repr__(self) -> str:
         """
         Provides a string representation of the Company including id and name.
         """
         return f"Company(id={self.id}, name={self.name})"
-
-
-event.listen(Company, "before_update", Company.update_timestamp)

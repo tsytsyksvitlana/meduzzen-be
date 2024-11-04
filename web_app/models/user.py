@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, String, event
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from web_app.models.base import Base
@@ -36,19 +36,8 @@ class User(Base):
         "CompanyMembership", back_populates="user"
     )
 
-    @staticmethod
-    def update_timestamp(mapper, connection, target):
-        """
-        Updates the updated_at timestamp before the User object
-        is updated in the database.
-        """
-        target.updated_at = datetime.now(timezone.utc)
-
     def __repr__(self) -> str:
         """
         Provides a string representation of the User object, showing the email.
         """
         return f"User(id = {self.id}, email={self.email})"
-
-
-event.listen(User, "before_update", User.update_timestamp)

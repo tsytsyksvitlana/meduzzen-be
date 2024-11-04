@@ -9,12 +9,14 @@ from fastapi.security import HTTPBearer
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
+from web_app.exceptions.application import ApplicationErrorException
 from web_app.exceptions.auth import AuthorizationException
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
 from web_app.exceptions.handlers import (
+    handle_application_error_exception,
     handle_authorization_exception,
     handle_invalid_field_exception,
     handle_object_already_exists_exception,
@@ -94,6 +96,9 @@ app.add_exception_handler(
 )
 app.add_exception_handler(
     PermissionDeniedException, handle_permission_denied_exception
+)
+app.add_exception_handler(
+    ApplicationErrorException, handle_application_error_exception
 )
 app.add_exception_handler(
     InvalidFieldException, handle_invalid_field_exception

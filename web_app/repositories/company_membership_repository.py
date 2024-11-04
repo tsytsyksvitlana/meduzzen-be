@@ -21,3 +21,8 @@ class CompanyMembershipRepository(BaseRepository[CompanyMembership]):
         )
         result = await self.session.execute(query)
         return result.scalars().first()
+
+    async def get_memberships_by_company_id(self, company_id: int):
+        query = select(CompanyMembership).filter_by(company_id=company_id)
+        result = await self.session.execute(query)
+        return result.scalars().all()
