@@ -31,6 +31,24 @@ class AuthService:
             raise UserEmailNotFoundException(email)
         return db_user
 
+    async def change_password(
+        self, current_user: User, old_password: str, new_password: str
+    ) -> None:
+        if not PasswordManager.verify_password(
+            old_password, current_user.password
+        ):
+            raise AuthorizationException(detail="Uncorrect password.")
+        await self.user_repository.update_user_password(
+            current_user, new_password
+        )
+
+    async def set_password(self, current_user: User, password: str):
+        if password is None:
+            raise ValueError("Password cannot be None.")
+        if current_user.password is not None:
+            raise AuthorizationException(detail="User already has a password.")
+        await self.user_repository.set_user_password(current_user, password)
+
 
 def get_auth_service(
     session: AsyncSession = Depends(pg_helper.session_getter)

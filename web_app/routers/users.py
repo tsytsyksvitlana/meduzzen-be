@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Query, status
 
+from web_app.models import User
 from web_app.schemas.user import (
     UserDetailResponse,
     UserSchema,
@@ -9,7 +10,7 @@ from web_app.schemas.user import (
     UserUpdateRequestModel
 )
 from web_app.services.users.user_service import UserService
-from web_app.utils.auth import get_user_service
+from web_app.utils.auth import get_current_user, get_user_service
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -67,12 +68,13 @@ async def get_user(
 async def update_user(
     user_id: int,
     user_update: UserUpdateRequestModel,
+    current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service)
 ) -> UserDetailResponse:
     """
     Update an existing user's details.
     """
-    user = await user_service.update_user(user_id, user_update)
+    user = await user_service.update_user(user_id, user_update, current_user)
     logger.info(f"Updated user with ID {user_id}.")
     user_schema = UserSchema(
         id=user.id,
@@ -89,10 +91,11 @@ async def update_user(
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: int,
+    current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service)
 ) -> None:
     """
-    Delete a user from the database.
+    Delete a user's own account from the database.
     """
-    await user_service.delete_user(user_id)
+    await user_service.delete_user(user_id, current_user)
     logger.info(f"Deleted user with ID {user_id}.")

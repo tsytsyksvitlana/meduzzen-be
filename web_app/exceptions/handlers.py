@@ -6,6 +6,8 @@ from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
+from web_app.exceptions.permission import PermissionDeniedException
+from web_app.exceptions.validation import InvalidFieldException
 
 
 async def handle_object_not_found_exception(
@@ -40,5 +42,29 @@ async def handle_authorization_exception(
     """
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": exc.detail},
+    )
+
+
+async def handle_permission_denied_exception(
+    request: Request, exc: PermissionDeniedException
+):
+    """
+    Handles PermissionDeniedException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={"detail": exc.detail},
+    )
+
+
+async def handle_invalid_field_exception(
+    request: Request, exc: InvalidFieldException
+):
+    """
+    Handles InvalidFieldException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": exc.detail},
     )

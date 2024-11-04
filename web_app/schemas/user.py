@@ -1,9 +1,19 @@
 import re
 from datetime import datetime
-from typing import ClassVar
 
-from fastapi import HTTPException, status
-from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    field_validator,
+    model_validator
+)
+
+from web_app.config.constants import PASSWORD_REGEX
+from web_app.exceptions.validation import (
+    InvalidFieldException,
+    InvalidPasswordException
+)
 
 
 class UserSchema(BaseModel):
@@ -38,33 +48,17 @@ class SignUpRequestModel(BaseModel):
     email: EmailStr
     password: str
 
-    PASSWORD_REGEX: ClassVar[re.Pattern] = re.compile(
-        r"^"
-        r"(?=.*[a-zA-Zа-яА-Я])"
-        r"(?=.*[a-zа-я])"
-        r"(?=.*[A-ZА-Я])"
-        r"(?=.*\d)"
-        r"(?=.*[^\w\s@\"'<>\-])"
-        r".{8,24}$"
-    )
-
     @field_validator("password")
     def validate_password(cls, v):
-        if not cls.PASSWORD_REGEX.match(v):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Password must be 8-24 characters long, contain digits, "
-                "lowercase and uppercase letters of any alphabet, "
-                "and special characters except for @, \", ', <, >.",
-            )
+        if not PASSWORD_REGEX.match(v):
+            raise InvalidPasswordException()
         return v
 
     @field_validator("first_name", "last_name", mode="before")
     def validate_names(cls, value, field):
         if value and not re.match(r"^[A-Za-z]+$", value):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"{field.name} must only contain alphabetic characters.",
+            raise InvalidFieldException(
+                f"{field.name} must only contain alphabetic characters."
             )
         return value
 
@@ -79,10 +73,8 @@ class UserUpdateRequestModel(BaseModel):
     @field_validator("first_name", "last_name", mode="before")
     def validate_names(cls, value, field):
         if value and not re.match(r"^[A-Za-z]+$", value):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"{field.name} must only contain "
-                       f"alphabetic characters.",
+            raise InvalidFieldException(
+                f"{field.name} must only contain alphabetic characters."
             )
         return value
 
@@ -100,3 +92,38 @@ class UserDetailResponse(BaseModel):
     Schema for user detail response.
     """
     user: UserSchema
+
+
+class UserPasswordChange(BaseModel):
+    """
+    Schema for user change password.
+    """
+    old_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    def validate_password(cls, v):
+        if not PASSWORD_REGEX.match(v):
+            raise InvalidPasswordException()
+        return v
+
+    @model_validator(mode="before")
+    def password_differ(cls, values):
+        if values.get("new_password") == values.get("old_password"):
+            raise InvalidFieldException(
+                "New password cannot match the old one."
+            )
+        return values
+
+
+class UserNewPassword(BaseModel):
+    """
+    Schema for setting password.
+    """
+    password: str
+
+    @field_validator("password")
+    def validate_password(cls, v):
+        if not PASSWORD_REGEX.match(v):
+            raise InvalidPasswordException()
+        return v
