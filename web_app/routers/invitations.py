@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, Query, status
 
 from web_app.models import User
@@ -14,8 +16,11 @@ from web_app.utils.auth import get_current_user
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
+
+
 @router.post(
-    "/{company_id}/invite",
+    "/company/{company_id}/invite",
     response_model=InvitationRetrieveSchema,
     status_code=status.HTTP_201_CREATED
 )
@@ -39,17 +44,20 @@ async def invite_member(
 
 
 @router.get(
-    "/invitations",
+    "/user/{user_id}/invitations",
     response_model=InvitationsListResponse,
     status_code=status.HTTP_200_OK
 )
 async def get_user_invitations(
+    user_id: int,
     limit: int = Query(10, ge=1),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
-    invitations, total_count = await invitation_service.get_user_invitations(current_user.id, limit, offset)
+    invitations, total_count = await invitation_service.get_user_invitations(
+        user_id, current_user.id, limit, offset
+    )
     return InvitationsListResponse(
         invitations=[
             InvitationRetrieveSchema(
@@ -61,3 +69,57 @@ async def get_user_invitations(
         ],
         total_count=total_count
     )
+
+
+@router.put(
+    "/user/company_invitation/{invitation_id}/decline",
+    status_code=status.HTTP_200_OK
+)
+async def decline_invitation(
+    invitation_id: int,
+    current_user: User = Depends(get_current_user),
+    invitation_service: InvitationService = Depends(get_invitation_service),
+):
+    await invitation_service.decline_invitation(invitation_id, current_user.id)
+    return {"message": "Invitation declined successfully"}
+
+
+@router.post(
+    "/user/company_invitation/{invitation_id}/accept",
+    status_code=status.HTTP_200_OK
+)
+async def accept_invitation(
+    invitation_id: int,
+    current_user: User = Depends(get_current_user),
+    invitation_service: InvitationService = Depends(get_invitation_service),
+):
+    await invitation_service.accept_invitation(invitation_id, current_user.id)
+    return {"message": "Invitation accepted successfully"}
+
+
+@router.put(
+    "/company_invitation/{invitation_id}/cancel",
+    status_code=status.HTTP_200_OK
+)
+async def cancel_invitation(
+    invitation_id: int,
+    current_user: User = Depends(get_current_user),
+    invitation_service: InvitationService = Depends(get_invitation_service),
+):
+    await invitation_service.cancel_invitation(invitation_id, current_user.id)
+    return {"message": "Invitation canceled successfully"}
+
+
+@router.get(
+    "/company/{company_id}/invitations",
+    status_code=status.HTTP_200_OK,
+)
+async def view_invitations(
+    company_id: int,
+    current_user: User = Depends(get_current_user),
+    invitation_service: InvitationService = Depends(get_invitation_service),
+):
+    invitations = await invitation_service.get_company_invitations(
+        company_id, current_user.id
+    )
+    return {"invitations": invitations}

@@ -27,6 +27,7 @@ class BaseRepository(RepositoryInterface[T], Generic[T]):
         return obj
 
     async def update_obj(self, obj: T) -> T:
+        self.session.add(obj)
         return obj
 
     async def delete_obj(self, obj_id: int) -> T:

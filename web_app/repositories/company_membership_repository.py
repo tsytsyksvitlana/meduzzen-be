@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.models.company_membership import CompanyMembership
 from web_app.repositories.base_repository import BaseRepository
+from web_app.schemas.roles import Role
 
 
 class CompanyMembershipRepository(BaseRepository[CompanyMembership]):
@@ -26,3 +27,13 @@ class CompanyMembershipRepository(BaseRepository[CompanyMembership]):
         query = select(CompanyMembership).filter_by(company_id=company_id)
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def add_user_to_company(
+            self, company_id: int, user_id: int, role: str = Role.MEMBER.value
+    ):
+        new_membership = CompanyMembership(
+            company_id=company_id,
+            user_id=user_id,
+            role=role
+        )
+        self.session.add(new_membership)

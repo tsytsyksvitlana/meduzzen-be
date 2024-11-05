@@ -5,16 +5,15 @@ Revises: 70099d8a4801
 Create Date: 2024-11-04 18:02:27.022020
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = '13a41218226d'
-down_revision: Union[str, None] = '70099d8a4801'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '70099d8a4801'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

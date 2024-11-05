@@ -5,16 +5,15 @@ Revises: 13a41218226d
 Create Date: 2024-11-04 19:54:27.812603
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = '1ea8211bbbe0'
-down_revision: Union[str, None] = '13a41218226d'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '13a41218226d'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

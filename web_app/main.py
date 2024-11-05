@@ -56,7 +56,7 @@ app.include_router(router)
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(companies_router, prefix="/company", tags=["companies"])
-app.include_router(invitations_router, prefix="/company", tags=["invitations"])
+app.include_router(invitations_router, tags=["invitations"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
