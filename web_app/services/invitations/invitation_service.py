@@ -11,7 +11,6 @@ from web_app.models import Invitation
 from web_app.repositories.company_membership_repository import (
     CompanyMembershipRepository
 )
-from web_app.repositories.company_repository import CompanyRepository
 from web_app.repositories.invitation_repository import InvitationRepository
 from web_app.schemas.invitation import InvitationStatus
 from web_app.schemas.roles import Role
@@ -20,11 +19,9 @@ from web_app.schemas.roles import Role
 class InvitationService:
     def __init__(
         self,
-        company_repository: CompanyRepository,
         membership_repository: CompanyMembershipRepository,
         invitation_repository: InvitationRepository,
     ):
-        self.company_repository = company_repository
         self.membership_repository = membership_repository
         self.invitation_repository = invitation_repository
 
@@ -126,7 +123,6 @@ def get_invitation_service(
         session: AsyncSession = Depends(pg_helper.session_getter)
 ) -> InvitationService:
     return InvitationService(
-        company_repository=CompanyRepository(session),
         membership_repository=CompanyMembershipRepository(session),
         invitation_repository=InvitationRepository(session),
     )

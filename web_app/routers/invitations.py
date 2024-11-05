@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.post(
-    "/company/{company_id}/invite",
+    "/company/{company_id}/send",
     response_model=InvitationRetrieveSchema,
     status_code=status.HTTP_201_CREATED
 )
@@ -44,7 +44,7 @@ async def invite_member(
 
 
 @router.get(
-    "/user/{user_id}/invitations",
+    "/user/{user_id}",
     response_model=InvitationsListResponse,
     status_code=status.HTTP_200_OK
 )
@@ -72,7 +72,7 @@ async def get_user_invitations(
 
 
 @router.put(
-    "/user/company_invitation/{invitation_id}/decline",
+    "/{invitation_id}/decline",
     status_code=status.HTTP_200_OK
 )
 async def decline_invitation(
@@ -85,7 +85,7 @@ async def decline_invitation(
 
 
 @router.post(
-    "/user/company_invitation/{invitation_id}/accept",
+    "/{invitation_id}/accept",
     status_code=status.HTTP_200_OK
 )
 async def accept_invitation(
@@ -98,7 +98,7 @@ async def accept_invitation(
 
 
 @router.put(
-    "/company_invitation/{invitation_id}/cancel",
+    "/{invitation_id}/cancel",
     status_code=status.HTTP_200_OK
 )
 async def cancel_invitation(
@@ -111,7 +111,7 @@ async def cancel_invitation(
 
 
 @router.get(
-    "/company/{company_id}/invitations",
+    "/company/{company_id}",
     status_code=status.HTTP_200_OK,
 )
 async def view_invitations(
@@ -122,4 +122,11 @@ async def view_invitations(
     invitations = await invitation_service.get_company_invitations(
         company_id, current_user.id
     )
-    return {"invitations": invitations}
+    return {"invitations": [
+        InvitationRetrieveSchema(
+            company_id=inv.company_id,
+            user_id=inv.user_id,
+            status=inv.status,
+            sent_at=inv.sent_at,
+        ) for inv in invitations
+    ]}
