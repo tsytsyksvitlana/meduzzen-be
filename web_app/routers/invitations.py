@@ -30,6 +30,9 @@ async def invite_member(
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
+    """
+    Allow owners to send invitations to users to join company.
+    """
     invitation = await invitation_service.send_invitation(
         company_id=company_id,
         owner_id=current_user.id,
@@ -55,6 +58,9 @@ async def get_user_invitations(
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
+    """
+    Retrieves a list of invitations for a specific user with pagination.
+    """
     invitations, total_count = await invitation_service.get_user_invitations(
         user_id, current_user.id, limit, offset
     )
@@ -80,6 +86,9 @@ async def decline_invitation(
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
+    """
+    Allows user to decline an invitation.
+    """
     await invitation_service.decline_invitation(invitation_id, current_user.id)
     return {"message": "Invitation declined successfully"}
 
@@ -93,6 +102,9 @@ async def accept_invitation(
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
+    """
+    Allows user to accept an invitation.
+    """
     await invitation_service.accept_invitation(invitation_id, current_user.id)
     return {"message": "Invitation accepted successfully"}
 
@@ -106,6 +118,9 @@ async def cancel_invitation(
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
+    """
+    Allows owner to cancel send invitation.
+    """
     await invitation_service.cancel_invitation(invitation_id, current_user.id)
     return {"message": "Invitation canceled successfully"}
 
@@ -119,6 +134,9 @@ async def view_invitations(
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
+    """
+    Retrieves a list of invitations sent by the company.
+    """
     invitations = await invitation_service.get_company_invitations(
         company_id, current_user.id
     )

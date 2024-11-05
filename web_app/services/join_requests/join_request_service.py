@@ -7,12 +7,14 @@ from web_app.exceptions.join_requests import (
     JoinRequestAlreadyExistsException,
     JoinRequestNotFoundException
 )
+from web_app.exceptions.permission import PermissionDeniedException
 from web_app.models import JoinRequest
 from web_app.repositories.company_membership_repository import (
     CompanyMembershipRepository
 )
 from web_app.repositories.company_repository import CompanyRepository
 from web_app.repositories.join_request_repository import JoinRequestRepository
+from web_app.schemas.roles import Role
 
 
 class JoinRequestService:
@@ -33,8 +35,8 @@ class JoinRequestService:
         if existing_request:
             raise JoinRequestAlreadyExistsException(existing_request.id)
         company = await self.company_repository.get_obj_by_id(company_id)
-        if company is not None:
-            raise CompanyNotFoundException(company.id)
+        if company is None:
+            raise CompanyNotFoundException(company_id)
 
         join_request = JoinRequest(company_id=company_id, user_id=user_id)
         join_request = await self.join_request_repository.create_obj(join_request)
@@ -68,8 +70,21 @@ class JoinRequestService:
         await self.join_request_repository.delete_obj(join_request.id)
         await self.join_request_repository.session.commit()
 
-    async def get_user_requests(self, user_id: int) -> list[JoinRequest]:
+    async def get_user_requests(self, user_id: int, current_user_id) -> list[JoinRequest]:
+        if current_user_id != user_id:
+            raise PermissionDeniedException()
         return await self.join_request_repository.get_user_requests(user_id)
+
+    async def check_is_owner(self, company_id: int, user_id: int):
+        membership = await self.membership_repository.get_user_company_membership(
+            company_id=company_id, user_id=user_id
+        )
+        if not membership or membership.role != Role.OWNER.value:
+            raise PermissionDeniedException()
+
+    async def get_pending_requests(self, company_id: int, current_user_id: int) -> list[JoinRequest]:
+        await self.check_is_owner(company_id, current_user_id)
+        return await self.join_request_repository.get_pending_requests(company_id)
 
 
 def get_join_request_service(
