@@ -53,12 +53,22 @@ class InvitationRepository(BaseRepository[Invitation]):
         return result.scalars().first()
 
     async def get_invitations_by_company(
-        self,
-        company_id: int
+            self,
+            company_id: int,
+            limit: int,
+            offset: int
     ) -> list[Invitation]:
         query = (
             select(Invitation)
             .where(Invitation.company_id == company_id)
+            .offset(offset)
+            .limit(limit)
         )
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def get_total_invitations_count_by_company(self, company_id: int) -> int:
+        query = select(func.count()).where(Invitation.company_id == company_id)
+        result = await self.session.execute(query)
+        return result.scalar()
+

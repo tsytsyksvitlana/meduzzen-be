@@ -3,11 +3,15 @@ import logging
 from fastapi import APIRouter, Depends, Query, status
 
 from web_app.models import User
+from web_app.schemas.company import CompanyInfoResponse
 from web_app.schemas.invitation import (
+    InvitationForCompanySchema,
+    InvitationForUserSchema,
     InvitationRetrieveSchema,
     InvitationSendSchema,
     InvitationsListResponse
 )
+from web_app.schemas.user import UserSchema
 from web_app.services.invitations.invitation_service import (
     InvitationService,
     get_invitation_service
@@ -66,11 +70,19 @@ async def get_user_invitations(
     )
     return InvitationsListResponse(
         invitations=[
-            InvitationRetrieveSchema(
-                company_id=inv.company_id,
-                user_id=inv.user_id,
+            InvitationForUserSchema(
+                id=inv.id,
+                company=CompanyInfoResponse(
+                    id=inv.company_id,
+                    name=inv.company.name,
+                    description=inv.company.description,
+                    is_visible=inv.company.is_visible,
+                    address=inv.company.address,
+                    contact_email=inv.company.contact_email,
+                    phone_number=inv.company.phone_number,
+                ),
                 status=inv.status,
-                sent_at=inv.sent_at,
+                requested_at=inv.sent_at,
             ) for inv in invitations
         ],
         total_count=total_count
@@ -131,20 +143,33 @@ async def cancel_invitation(
 )
 async def view_invitations(
     company_id: int,
+    limit: int = Query(10, ge=1),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     invitation_service: InvitationService = Depends(get_invitation_service),
 ):
     """
-    Retrieves a list of invitations sent by the company.
+    Retrieves a list of invitations sent by the company with pagination.
     """
-    invitations = await invitation_service.get_company_invitations(
-        company_id, current_user.id
+    invitations, total_count = await invitation_service.get_company_invitations(
+        company_id, current_user.id, limit, offset
     )
-    return {"invitations": [
-        InvitationRetrieveSchema(
-            company_id=inv.company_id,
-            user_id=inv.user_id,
-            status=inv.status,
-            sent_at=inv.sent_at,
-        ) for inv in invitations
-    ]}
+    return {
+        "invitations": [
+            InvitationForCompanySchema(
+                id=inv.id,
+                user=UserSchema(
+                    id=inv.user_id,
+                    firt_name=inv.user.first_name,
+                    last_name=inv.user.last_name,
+                    email=inv.user.email,
+                    created_at=inv.sent_at,
+                    updated_at=inv.user.updated_at,
+                    last_activity_at=inv.user.last_activity_at,
+                ),
+                status=inv.status,
+                requested_at=inv.sent_at,
+            ) for inv in invitations
+        ],
+        "total_count": total_count,
+    }

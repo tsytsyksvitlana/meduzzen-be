@@ -11,6 +11,7 @@ from web_app.schemas.company import (
     CompanyUpdateSchema,
     OwnerSchema
 )
+from web_app.schemas.user import UserSchema, UsersListResponse
 from web_app.services.companies.company_service import (
     CompanyService,
     get_company_service
@@ -130,3 +131,25 @@ async def update_company(
         phone_number=company.phone_number,
     )
     return company_schema
+
+
+@router.get("/{company_id}/users", response_model=UsersListResponse)
+async def get_users_in_company(
+    company_id: int,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    company_service: CompanyService = Depends(get_company_service),
+):
+    users, total_count = await company_service.get_users_in_company(company_id, limit, offset)
+    user_schemas = [
+        UserSchema(
+            id=user.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
+            last_activity_at=user.last_activity_at
+        ) for user in users
+    ]
+    return UsersListResponse(users=user_schemas, total_count=total_count)

@@ -106,17 +106,22 @@ class InvitationService:
         await self.invitation_repository.session.commit()
 
     async def get_company_invitations(
-        self,
-        company_id: int,
-        owner_id: int
-    ) -> list[Invitation]:
+            self,
+            company_id: int,
+            owner_id: int,
+            limit: int,
+            offset: int
+    ) -> tuple[list[Invitation], int]:
         owner_membership = await self.membership_repository.get_user_company_membership(
             company_id, owner_id
         )
         if not owner_membership or owner_membership.role != Role.OWNER.value:
             raise PermissionDeniedException()
 
-        return await self.invitation_repository.get_invitations_by_company(company_id)
+        invitations = await self.invitation_repository.get_invitations_by_company(company_id, limit, offset)
+        total_count = await self.invitation_repository.get_total_invitations_count_by_company(company_id)
+
+        return invitations, total_count
 
 
 def get_invitation_service(

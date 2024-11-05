@@ -130,6 +130,20 @@ class CompanyService:
 
         return updated_company
 
+    async def get_users_in_company(self, company_id: int, limit: int, offset: int):
+        company = await self.company_repository.get_obj_by_id(company_id)
+        if not company:
+            raise CompanyNotFoundException(company_id)
+
+        memberships = await self.membership_repository.get_memberships_by_company_id(company_id)
+
+        user_ids = [membership.user_id for membership in memberships]
+
+        users = await self.membership_repository.get_users_by_ids(user_ids, limit, offset)
+
+        total_count = len(user_ids)
+        return users, total_count
+
 
 def get_company_service(
         session: AsyncSession = Depends(pg_helper.session_getter)

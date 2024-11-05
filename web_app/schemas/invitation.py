@@ -3,6 +3,9 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from web_app.schemas.company import CompanyInfoResponse
+from web_app.schemas.user import UserSchema
+
 
 class InvitationStatus(Enum):
     PENDING = "Pending"
@@ -22,6 +25,20 @@ class InvitationRetrieveSchema(BaseModel):
     sent_at: datetime
 
 
+class InvitationForCompanySchema(BaseModel):
+    id: int
+    user: UserSchema
+    status: str
+    requested_at: datetime
+
+
+class InvitationForUserSchema(BaseModel):
+    id: int
+    company: CompanyInfoResponse
+    status: str
+    requested_at: datetime
+
+
 class InvitationsListResponse(BaseModel):
-    invitations: list[InvitationRetrieveSchema]
+    invitations: list[InvitationForUserSchema] | list[InvitationForCompanySchema]
     total_count: int

@@ -1,6 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from web_app.models import User
 from web_app.models.company_membership import CompanyMembership
 from web_app.repositories.base_repository import BaseRepository
 from web_app.schemas.roles import Role
@@ -37,3 +38,13 @@ class CompanyMembershipRepository(BaseRepository[CompanyMembership]):
             role=role
         )
         self.session.add(new_membership)
+
+    async def get_users_by_ids(self, user_ids: list[int], limit: int, offset: int) -> list[User]:
+        query = (
+            select(User)
+            .where(User.id.in_(user_ids))
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.session.execute(query)
+        return result.scalars().all()
