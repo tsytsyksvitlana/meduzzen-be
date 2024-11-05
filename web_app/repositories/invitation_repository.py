@@ -71,4 +71,3 @@ class InvitationRepository(BaseRepository[Invitation]):
         query = select(func.count()).where(Invitation.company_id == company_id)
         result = await self.session.execute(query)
         return result.scalar()
-
