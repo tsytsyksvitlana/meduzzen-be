@@ -1,6 +1,7 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
+from web_app.exceptions.application import ApplicationErrorException
 from web_app.exceptions.auth import AuthorizationException
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
@@ -54,6 +55,18 @@ async def handle_permission_denied_exception(
     """
     return JSONResponse(
         status_code=status.HTTP_403_FORBIDDEN,
+        content={"detail": exc.detail},
+    )
+
+
+async def handle_application_error_exception(
+    request: Request, exc: ApplicationErrorException
+):
+    """
+    Handles ApplicationErrorException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": exc.detail},
     )
 

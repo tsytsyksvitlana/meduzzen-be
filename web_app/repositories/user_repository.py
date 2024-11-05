@@ -20,10 +20,8 @@ class UserRepository(BaseRepository[User]):
         hashed_password = PasswordManager.hash_password(new_password)
         current_user.password = hashed_password
         self.session.add(current_user)
-        await self.session.commit()
 
     async def set_user_password(self, current_user, password):
         hashed_password = PasswordManager.hash_password(password)
         current_user.password = hashed_password
         self.session.add(current_user)
-        await self.session.commit()
