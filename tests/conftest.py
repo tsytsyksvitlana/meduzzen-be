@@ -14,8 +14,16 @@ from tests.config.postgres_config import test_postgres_settings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
-from web_app.models import Company, User
+from web_app.models import Company, CompanyMembership, User
 from web_app.models.base import Base
+from web_app.repositories.company_membership_repository import (
+    CompanyMembershipRepository
+)
+from web_app.repositories.company_repository import CompanyRepository
+from web_app.repositories.question_repository import QuestionRepository
+from web_app.repositories.quiz_repository import QuizRepository
+from web_app.schemas.quiz import AnswerCreate, QuestionCreate, QuizCreate
+from web_app.services.quizzes.quiz_service import QuizService
 from web_app.utils.password_manager import PasswordManager
 
 logging.basicConfig(level=logging.INFO)
@@ -149,6 +157,83 @@ async def token_first_user(client: AsyncClient, create_test_users):
     )
     access_token = login_response.json().get("access_token")
     return access_token
+
+
+@pytest.fixture
+async def create_test_quizzes(db_session: AsyncSession, create_test_users, create_test_companies):
+    create_test_company = create_test_companies[0]
+    user = create_test_users[0]
+    company_id = create_test_company.id
+
+    company_membership = CompanyMembership(
+        company_id=company_id,
+        user_id=user.id,
+        role="Owner",
+    )
+    db_session.add(company_membership)
+    await db_session.commit()
+
+    quiz_data_1 = QuizCreate(
+        title="General Knowledge Quiz",
+        description="Test your knowledge",
+        participation_frequency=10,
+        company_id=company_id,
+        questions=[
+            QuestionCreate(
+                title="What is the capital of France?",
+                answers=[
+                    AnswerCreate(text="Paris", is_correct=True),
+                    AnswerCreate(text="London", is_correct=False)
+                ]
+            ),
+            QuestionCreate(
+                title="What is 2 + 2?",
+                answers=[
+                    AnswerCreate(text="4", is_correct=True),
+                    AnswerCreate(text="5", is_correct=False)
+                ]
+            )
+        ]
+    )
+
+    quiz_data_2 = QuizCreate(
+        title="Math Quiz",
+        description="Test your math skills",
+        participation_frequency=5,
+        company_id=company_id,
+        questions=[
+            QuestionCreate(
+                title="What is 3 + 3?",
+                answers=[
+                    AnswerCreate(text="6", is_correct=True),
+                    AnswerCreate(text="7", is_correct=False)
+                ]
+            ),
+            QuestionCreate(
+                title="What is 5 + 5?",
+                answers=[
+                    AnswerCreate(text="10", is_correct=True),
+                    AnswerCreate(text="11", is_correct=False)
+                ]
+            )
+        ]
+    )
+    quiz_repository = QuizRepository(session=db_session)
+    question_repository = QuestionRepository(session=db_session)
+    company_repository = CompanyRepository(session=db_session)
+    membership_repository = CompanyMembershipRepository(session=db_session)
+
+    quiz_service = QuizService(
+        quiz_repository=quiz_repository,
+        question_repository=question_repository,
+        company_repository=company_repository,
+        membership_repository=membership_repository
+    )
+
+    created_quiz_1 = await quiz_service.create_quiz(quiz_data_1, current_user=user)
+    created_quiz_2 = await quiz_service.create_quiz(quiz_data_2, current_user=user)
+
+    return [created_quiz_1, created_quiz_2]
 
 
 @pytest.fixture(scope="function")

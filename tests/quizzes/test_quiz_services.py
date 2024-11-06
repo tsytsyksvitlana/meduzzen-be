@@ -206,93 +206,17 @@ async def test_quiz_service_create_quiz_with_invalid_permissions(
 async def test_quiz_service_get_quizzes_for_company(
         db_session: AsyncSession,
         create_test_users,
-        create_test_companies
+        create_test_companies,
+        create_test_quizzes
 ):
-    # Підготовка тестових даних
     create_test_company = create_test_companies[0]
-    quiz_repository = QuizRepository(session=db_session)
-    question_repository = QuestionRepository(session=db_session)
-    company_repository = CompanyRepository(session=db_session)
-    membership_repository = CompanyMembershipRepository(session=db_session)
-
-    quiz_service = QuizService(
-        quiz_repository=quiz_repository,
-        question_repository=question_repository,
-        company_repository=company_repository,
-        membership_repository=membership_repository
-    )
-
-    user = create_test_users[0]
     company_id = create_test_company.id
 
-    # Створення компанії та підключення користувача до неї
-    company_membership = CompanyMembership(
-        company_id=company_id,
-        user_id=user.id,
-        role="Owner",
-    )
-    db_session.add(company_membership)
-    await db_session.commit()
+    quizzes = create_test_quizzes
 
-    # Створення квізів для компанії
-    quiz_data_1 = QuizCreate(
-        title="General Knowledge Quiz",
-        description="Test your knowledge",
-        participation_frequency=10,
-        company_id=company_id,
-        questions=[
-            QuestionCreate(
-                title="What is the capital of France?",
-                answers=[
-                    AnswerCreate(text="Paris", is_correct=True),
-                    AnswerCreate(text="London", is_correct=False)
-                ]
-            ),
-            QuestionCreate(
-                title="What is 2 + 2?",
-                answers=[
-                    AnswerCreate(text="4", is_correct=True),
-                    AnswerCreate(text="5", is_correct=False)
-                ]
-            )
-        ]
-    )
-
-    quiz_data_2 = QuizCreate(
-        title="Math Quiz",
-        description="Test your math skills",
-        participation_frequency=5,
-        company_id=company_id,
-        questions=[
-            QuestionCreate(
-                title="What is 3 + 3?",
-                answers=[
-                    AnswerCreate(text="6", is_correct=True),
-                    AnswerCreate(text="7", is_correct=False)
-                ]
-            ),
-            QuestionCreate(
-                title="What is 5 + 5?",
-                answers=[
-                    AnswerCreate(text="10", is_correct=True),
-                    AnswerCreate(text="11", is_correct=False)
-                ]
-            )
-        ]
-    )
-
-    # Створення квізів
-    await quiz_service.create_quiz(quiz_data_1, current_user=user)
-    await quiz_service.create_quiz(quiz_data_2, current_user=user)
-
-    # Отримання квізів для компанії
-    quizzes = await quiz_service.get_quizzes_for_company(company_id=company_id, skip=0, limit=10)
-
-    # Перевірка результатів
     assert len(quizzes) == 2
-    assert quizzes[0].title == quiz_data_1.title
-    assert quizzes[1].title == quiz_data_2.title
+    assert quizzes[0].title == "General Knowledge Quiz"
+    assert quizzes[1].title == "Math Quiz"
 
-    # Перевірка квізів по компанії
     for quiz in quizzes:
         assert quiz.company_id == company_id
