@@ -1,0 +1,32 @@
+from datetime import datetime, timezone
+
+from sqlalchemy import DateTime, ForeignKey, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from web_app.models.base import Base
+
+
+class QuizParticipation(Base):
+    """
+    Model for storing user participation in quizzes.
+    """
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("User.id", ondelete="CASCADE"), nullable=False
+    )
+    quiz_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("Quiz.id", ondelete="CASCADE"), nullable=False
+    )
+    participated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.now(timezone.utc),
+    )
+
+    user = relationship("User", back_populates="quiz_participations")
+    quiz = relationship("Quiz", back_populates="participations")
+
+    def __repr__(self) -> str:
+        return (f"QuizParticipation("
+                f"user_id={self.user_id}, quiz_id={self.quiz_id}, "
+                f"participated_at={self.participated_at})"
+                )

@@ -45,6 +45,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    quiz_participations = relationship(
+        "QuizParticipation", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """
