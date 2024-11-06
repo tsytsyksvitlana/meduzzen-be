@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 
 from web_app.models import User
 from web_app.schemas.quiz import QuizCreate
@@ -29,3 +29,12 @@ async def get_quizzes(
         company_id=company_id, skip=skip, limit=limit
     )
     return quizzes
+
+
+@router.delete("/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_quiz(
+    quiz_id: int,
+    current_user: User = Depends(get_current_user),
+    quiz_service: QuizService = Depends(get_quiz_service)
+):
+    await quiz_service.delete_quiz(quiz_id, current_user)

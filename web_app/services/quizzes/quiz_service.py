@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.companies import CompanyNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
+from web_app.exceptions.quizzes import QuizNotFoundException
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import User
 from web_app.models.answer import Answer
@@ -81,6 +82,16 @@ class QuizService:
             raise CompanyNotFoundException(company_id)
         quizzes = await self.quiz_repository.get_objs(company_id, skip, limit)
         return quizzes
+
+    async def delete_quiz(self, quiz_id: int, current_user: User):
+        quiz = await self.quiz_repository.get_obj_by_id(quiz_id)
+        if not quiz:
+            raise QuizNotFoundException(quiz_id)
+
+        await self.check_is_owner_or_admin(quiz.company_id, current_user)
+
+        await self.quiz_repository.delete_obj(quiz_id)
+        await self.quiz_repository.session.commit()
 
 
 def get_quiz_service(

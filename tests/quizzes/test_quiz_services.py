@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.exceptions.permission import PermissionDeniedException
+from web_app.exceptions.quizzes import QuizNotFoundException
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import CompanyMembership
 from web_app.repositories.company_membership_repository import (
@@ -220,3 +221,42 @@ async def test_quiz_service_get_quizzes_for_company(
 
     for quiz in quizzes:
         assert quiz.company_id == company_id
+
+
+async def test_quiz_service_delete_quiz(
+        db_session: AsyncSession,
+        create_test_quizzes,
+        create_test_users,
+):
+    quizzes = create_test_quizzes
+    user = create_test_users[0]
+    another_user = create_test_users[1]
+
+    quiz_repository = QuizRepository(session=db_session)
+    question_repository = QuestionRepository(session=db_session)
+    company_repository = CompanyRepository(session=db_session)
+    membership_repository = CompanyMembershipRepository(session=db_session)
+
+    quiz_service = QuizService(
+        quiz_repository=quiz_repository,
+        question_repository=question_repository,
+        company_repository=company_repository,
+        membership_repository=membership_repository
+    )
+
+    assert len(quizzes) == 2
+
+    await quiz_service.delete_quiz(quiz_id=quizzes[0].id, current_user=user)
+    await quiz_service.quiz_repository.session.commit()
+
+    with pytest.raises(QuizNotFoundException):
+        await quiz_service.delete_quiz(quiz_id=quizzes[0].id, current_user=user)
+
+    with pytest.raises(PermissionDeniedException):
+        await quiz_service.delete_quiz(quiz_id=quizzes[1].id, current_user=another_user)
+
+    await quiz_service.delete_quiz(quiz_id=quizzes[1].id, current_user=user)
+    await quiz_service.quiz_repository.session.commit()
+
+    with pytest.raises(QuizNotFoundException):
+        await quiz_service.delete_quiz(quiz_id=quizzes[0].id, current_user=user)
