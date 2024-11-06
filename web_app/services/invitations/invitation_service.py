@@ -95,6 +95,8 @@ class InvitationService:
 
     async def cancel_invitation(self, invitation_id: int, owner_id: int):
         invitation = await self.invitation_repository.get_obj_by_id(invitation_id)
+        if not invitation:
+            raise InvitationNotFoundException(invitation_id)
         owner_membership = await self.membership_repository.get_user_company_membership(
             invitation.company_id, owner_id
         )

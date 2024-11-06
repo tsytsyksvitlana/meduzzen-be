@@ -46,7 +46,7 @@ class JoinRequestService:
     async def cancel_request(self, request_id: int, user_id: int):
         join_request = await self.join_request_repository.get_obj_by_id(request_id)
         if not join_request or join_request.user_id != user_id:
-            raise JoinRequestNotFoundException(request_id)
+            raise JoinRequestNotFoundException(join_request)
 
         await self.join_request_repository.delete_obj(join_request.id)
         await self.join_request_repository.session.commit()
@@ -54,7 +54,7 @@ class JoinRequestService:
     async def accept_request(self, request_id: int, owner_id: int):
         join_request = await self.join_request_repository.get_obj_by_id(request_id)
         if not join_request:
-            raise JoinRequestNotFoundException(request_id)
+            raise JoinRequestNotFoundException(join_request)
 
         await self.membership_repository.add_user_to_company(
             join_request.company_id, join_request.user_id
@@ -65,7 +65,7 @@ class JoinRequestService:
     async def decline_request(self, request_id: int, owner_id: int):
         join_request = await self.join_request_repository.get_obj_by_id(request_id)
         if not join_request:
-            raise JoinRequestNotFoundException(request_id)
+            raise JoinRequestNotFoundException(join_request)
 
         await self.join_request_repository.delete_obj(join_request.id)
         await self.join_request_repository.session.commit()

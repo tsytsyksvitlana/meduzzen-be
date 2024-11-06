@@ -10,8 +10,7 @@ class JoinRequestAlreadyExistsException(ObjectAlreadyExistsException):
 
 
 class JoinRequestNotFoundException(ObjectNotFoundException):
-    def __init__(self, company_id: int, user_id: int):
+    def __init__(self, request_id: int):
         super().__init__(
-            object_type="JoinRequest",
-            field=f"company_id={company_id}, user_id={user_id}"
+            object_type="JoinRequest", field=f"ID {request_id}"
         )
