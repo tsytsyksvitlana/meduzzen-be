@@ -1,8 +1,8 @@
-"""added models for quizzes
+"""added quiz models
 
-Revision ID: 10363d10693c
+Revision ID: a01fc925787a
 Revises: 1ea8211bbbe0
-Create Date: 2024-11-06 14:39:54.185784
+Create Date: 2024-11-06 16:28:15.260033
 
 """
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = '10363d10693c'
+revision: str = 'a01fc925787a'
 down_revision: Union[str, None] = '1ea8211bbbe0'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

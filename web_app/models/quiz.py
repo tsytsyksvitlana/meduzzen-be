@@ -39,6 +39,10 @@ class Quiz(Base):
         back_populates="quiz",
         cascade="all, delete-orphan"
     )
+    participations = relationship(
+        "QuizParticipation",
+        back_populates="quiz"
+    )
 
     def __repr__(self) -> str:
         return f"Quiz(id={self.id}, title={self.title}, company_id={self.company_id})"
