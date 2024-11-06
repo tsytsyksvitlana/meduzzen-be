@@ -153,3 +153,49 @@ async def get_users_in_company(
         ) for user in users
     ]
     return UsersListResponse(users=user_schemas, total_count=total_count)
+
+
+@router.patch("/{company_id}/appoint_admin/{user_id}/")
+async def appoint_admin(
+    company_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    company_service: CompanyService = Depends(get_company_service),
+):
+    await company_service.appoint_admin(company_id, user_id, current_user)
+    logger.info(f"User with ID {user_id} appointed as admin in company {company_id}.")
+    return {"msg": f"User {user_id} has been appointed as admin."}
+
+
+@router.patch("/{company_id}/remove_admin/{user_id}/")
+async def remove_admin(
+    company_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    company_service: CompanyService = Depends(get_company_service),
+):
+    await company_service.remove_admin(company_id, user_id, current_user)
+    logger.info(f"User with ID {user_id} removed from admin role in company {company_id}.")
+    return {"msg": f"User {user_id} has been removed from admin role."}
+
+
+@router.get("/{company_id}/admins", response_model=UsersListResponse)
+async def get_admins_in_company(
+    company_id: int,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    company_service: CompanyService = Depends(get_company_service),
+):
+    admins, total_count = await company_service.get_admins_in_company(company_id, limit, offset)
+    admin_schemas = [
+        UserSchema(
+            id=admin.id,
+            first_name=admin.first_name,
+            last_name=admin.last_name,
+            email=admin.email,
+            created_at=admin.created_at,
+            updated_at=admin.updated_at,
+            last_activity_at=admin.last_activity_at
+        ) for admin in admins
+    ]
+    return UsersListResponse(users=admin_schemas, total_count=total_count)

@@ -8,6 +8,7 @@ from web_app.exceptions.companies import (
     CompanyNotFoundException,
     OwnerNotFoundException
 )
+from web_app.exceptions.memberships import MembershipException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.models import User
 from web_app.models.company import Company
@@ -142,6 +143,68 @@ class CompanyService:
         users = await self.membership_repository.get_users_by_ids(user_ids, limit, offset)
 
         total_count = len(user_ids)
+        return users, total_count
+
+    async def appoint_admin(
+        self,
+        company_id: int,
+        user_id: int,
+        current_user: User
+    ) -> CompanyMembership:
+        await self.check_is_owner(company_id, current_user)
+
+        membership = await self.membership_repository.get_user_company_membership(
+            company_id, user_id
+        )
+        if not membership:
+            raise MembershipException("User is not a member of the company.")
+
+        if membership.role == Role.ADMIN.value:
+            raise MembershipException("User is already an administrator.")
+
+        membership.role = Role.ADMIN.value
+        await self.membership_repository.session.commit()
+        await self.membership_repository.session.refresh(membership)
+
+        return membership
+
+    async def remove_admin(
+        self,
+        company_id: int,
+        user_id: int,
+        current_user: User
+    ) -> CompanyMembership:
+        await self.check_is_owner(company_id, current_user)
+
+        membership = await self.membership_repository.get_user_company_membership(
+            company_id, user_id
+        )
+        if not membership:
+            raise MembershipException("User is not a member of the company.")
+
+        if membership.role != Role.ADMIN.value:
+            raise MembershipException("User is not an administrator.")
+
+        membership.role = Role.MEMBER.value
+        await self.membership_repository.session.commit()
+        await self.membership_repository.session.refresh(membership)
+
+        return membership
+
+    async def get_admins_in_company(self, company_id: int, limit: int, offset: int):
+        company = await self.company_repository.get_obj_by_id(company_id)
+        if not company:
+            raise CompanyNotFoundException(company_id)
+
+        memberships = await self.membership_repository.get_memberships_by_company_id(company_id)
+
+        admins = [membership for membership in memberships if membership.role == Role.ADMIN.value]
+        admins_paginated = admins[offset:offset + limit]
+
+        user_ids = [admin.user_id for admin in admins_paginated]
+        users = await self.membership_repository.get_users_by_ids(user_ids, limit, offset)
+
+        total_count = len(admins)
         return users, total_count
 
 
