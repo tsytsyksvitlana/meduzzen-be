@@ -1,3 +1,5 @@
+import json
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,7 @@ from web_app.config.constants import (
     MIN_QUIZ_QUESTION_COUNT
 )
 from web_app.db.postgres_helper import postgres_helper as pg_helper
+from web_app.db.redis_helper import redis_helper
 from web_app.exceptions.companies import CompanyNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
@@ -197,6 +200,13 @@ class QuizService:
         if total_questions_count < MIN_QUIZ_QUESTION_COUNT:
             raise InvalidFieldException("A quiz must have at least 2 questions.")
 
+        participation_data = {
+            "user_id": current_user.id,
+            "company_id": quiz.company_id,
+            "quiz_id": quiz_id,
+            "question_answers": []
+        }
+
         correct_answers_count = 0
         for user_answer in user_answers:
             question = await self.question_repository.get_obj_by_id(user_answer.question_id)
@@ -207,6 +217,13 @@ class QuizService:
                 raise AnswerNotFoundException(user_answer.question_id)
             if is_correct := answer.is_correct:
                 correct_answers_count += 1
+
+                participation_data["question_answers"].append({
+                    "question_id": question.id,
+                    "user_answer_id": answer.id,
+                    "is_correct": is_correct
+                })
+
                 user_answer_obj = UserAnswer(
                     user_id=current_user.id,
                     answer_id=user_answer.answer_id,
@@ -224,6 +241,10 @@ class QuizService:
         )
         await self.quiz_participation_repository.create_obj(participation)
         await self.quiz_participation_repository.session.commit()
+
+        redis_key = f"quiz:{quiz_id}:user:{current_user.id}"
+        await redis_helper.set(redis_key, json.dumps(participation_data))
+
         return participation
 
 
