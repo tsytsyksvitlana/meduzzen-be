@@ -16,12 +16,17 @@ from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
 from web_app.models import Company, CompanyMembership, User
 from web_app.models.base import Base
+from web_app.repositories.answer_repository import AnswerRepository
 from web_app.repositories.company_membership_repository import (
     CompanyMembershipRepository
 )
 from web_app.repositories.company_repository import CompanyRepository
 from web_app.repositories.question_repository import QuestionRepository
+from web_app.repositories.quiz_participation_repository import (
+    QuizParticipationRepository
+)
 from web_app.repositories.quiz_repository import QuizRepository
+from web_app.repositories.user_answer_repository import UserAnswerRepository
 from web_app.schemas.quiz import AnswerCreate, QuestionCreate, QuizCreate
 from web_app.services.quizzes.quiz_service import QuizService
 from web_app.utils.password_manager import PasswordManager
@@ -32,19 +37,20 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture(scope="function")
 async def client() -> AsyncClient:
+    """Fixture to create and yield an HTTP client for testing."""
     logger.info("Creating HTTP client...")
     transport = ASGITransport(app=app)
     async with AsyncClient(
-        transport=transport,
-        base_url=f"http://{settings.fastapi.SERVER_HOST}:"
-                 f"{settings.fastapi.SERVER_PORT}",
+            transport=transport,
+            base_url=f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}"
     ) as ac:
         yield ac
     logger.info("HTTP client closed.")
 
 
 @pytest.fixture(scope="function")
-async def setup_test_db_and_teardown():
+async def session_factory():
+    """Fixture to set up and tear down the test database."""
     logger.info("Setting up the test database...")
 
     postgres_helper.engine = create_async_engine(
@@ -77,9 +83,8 @@ async def setup_test_db_and_teardown():
 
 
 @pytest.fixture(scope="function")
-async def db_session(setup_test_db_and_teardown) -> AsyncSession:
-    async_session_factory = setup_test_db_and_teardown
-    async with async_session_factory() as session:
+async def db_session(session_factory) -> AsyncSession:
+    async with session_factory() as session:
         yield session
         await session.rollback()
 
@@ -100,6 +105,7 @@ async def create_test_users(db_session: AsyncSession):
             "password": "vdsfhDFDF/934",
         }
     ]
+
     for data in users_data:
         hashed_password = PasswordManager.hash_password(data["password"])
         new_user = User(
@@ -113,7 +119,6 @@ async def create_test_users(db_session: AsyncSession):
 
     result = await db_session.execute(select(User))
     created_users = result.scalars().all()
-
     return created_users
 
 
@@ -137,6 +142,7 @@ async def create_test_companies(db_session: AsyncSession):
             "phone_number": "4445556666",
         }
     ]
+
     for data in companies_data:
         new_company = Company(**data)
         db_session.add(new_company)
@@ -144,7 +150,6 @@ async def create_test_companies(db_session: AsyncSession):
 
     result = await db_session.execute(select(Company))
     created_companies = result.scalars().all()
-
     return created_companies
 
 
@@ -160,16 +165,12 @@ async def token_first_user(client: AsyncClient, create_test_users):
 
 
 @pytest.fixture
-async def create_test_quizzes(db_session: AsyncSession, create_test_users, create_test_companies):
+async def create_test_quizzes(db_session: AsyncSession, create_test_users, create_test_companies, quiz_service):
     create_test_company = create_test_companies[0]
     user = create_test_users[0]
     company_id = create_test_company.id
 
-    company_membership = CompanyMembership(
-        company_id=company_id,
-        user_id=user.id,
-        role="Owner",
-    )
+    company_membership = CompanyMembership(company_id=company_id, user_id=user.id, role="Owner")
     db_session.add(company_membership)
     await db_session.commit()
 
@@ -225,17 +226,6 @@ async def create_test_quizzes(db_session: AsyncSession, create_test_users, creat
             )
         ]
     )
-    quiz_repository = QuizRepository(session=db_session)
-    question_repository = QuestionRepository(session=db_session)
-    company_repository = CompanyRepository(session=db_session)
-    membership_repository = CompanyMembershipRepository(session=db_session)
-
-    quiz_service = QuizService(
-        quiz_repository=quiz_repository,
-        question_repository=question_repository,
-        company_repository=company_repository,
-        membership_repository=membership_repository
-    )
 
     created_quiz_1 = await quiz_service.create_quiz(quiz_data_1, current_user=user)
     created_quiz_2 = await quiz_service.create_quiz(quiz_data_2, current_user=user)
@@ -246,3 +236,29 @@ async def create_test_quizzes(db_session: AsyncSession, create_test_users, creat
 @pytest.fixture(scope="function")
 def anyio_backend():
     return "asyncio"
+
+
+@pytest.fixture
+def repositories(db_session: AsyncSession):
+    return {
+        "quiz_repository": QuizRepository(session=db_session),
+        "question_repository": QuestionRepository(session=db_session),
+        "company_repository": CompanyRepository(session=db_session),
+        "membership_repository": CompanyMembershipRepository(session=db_session),
+        "answer_repository": AnswerRepository(session=db_session),
+        "user_answer_repository": UserAnswerRepository(session=db_session),
+        "quiz_participation_repository": QuizParticipationRepository(session=db_session),
+    }
+
+
+@pytest.fixture
+def quiz_service(repositories):
+    return QuizService(
+        quiz_repository=repositories["quiz_repository"],
+        question_repository=repositories["question_repository"],
+        answer_repository=repositories["answer_repository"],
+        user_answer_repository=repositories["user_answer_repository"],
+        quiz_participation_repository=repositories["quiz_participation_repository"],
+        company_repository=repositories["company_repository"],
+        membership_repository=repositories["membership_repository"]
+    )

@@ -9,3 +9,8 @@ class QuizNotFoundException(ObjectNotFoundException):
 class QuestionNotFoundException(ObjectNotFoundException):
     def __init__(self, question_id: int):
         super().__init__(object_type="Question", field=f"ID {question_id}")
+
+
+class AnswerNotFoundException(ObjectNotFoundException):
+    def __init__(self, answer_id: int):
+        super().__init__(object_type="Answer", field=f"ID {answer_id}")

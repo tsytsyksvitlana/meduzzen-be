@@ -33,6 +33,11 @@ class QuizParticipation(Base):
     quiz = relationship("Quiz", back_populates="participations")
     company = relationship("Company", back_populates="participations")
 
+    def calculate_score_percentage(self) -> float:
+        if self.total_questions > 0:
+            return (self.score / self.total_questions) * 100
+        return 0
+
     def __repr__(self) -> str:
         return (f"QuizParticipation("
                 f"user_id={self.user_id}, quiz_id={self.quiz_id}, "

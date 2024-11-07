@@ -1,25 +1,40 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from web_app.config.constants import (
+    MIN_QUESTION_ANSWER_COUNT,
+    MIN_QUIZ_QUESTION_COUNT
+)
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.companies import CompanyNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
+    AnswerNotFoundException,
     QuestionNotFoundException,
     QuizNotFoundException
 )
 from web_app.exceptions.validation import InvalidFieldException
-from web_app.models import User
+from web_app.models import QuizParticipation, User, UserAnswer
 from web_app.models.answer import Answer
 from web_app.models.question import Question
 from web_app.models.quiz import Quiz
+from web_app.repositories.answer_repository import AnswerRepository
 from web_app.repositories.company_membership_repository import (
     CompanyMembershipRepository
 )
 from web_app.repositories.company_repository import CompanyRepository
 from web_app.repositories.question_repository import QuestionRepository
+from web_app.repositories.quiz_participation_repository import (
+    QuizParticipationRepository
+)
 from web_app.repositories.quiz_repository import QuizRepository
-from web_app.schemas.quiz import QuestionCreate, QuizCreate, QuizUpdate
+from web_app.repositories.user_answer_repository import UserAnswerRepository
+from web_app.schemas.quiz import (
+    QuestionCreate,
+    QuizCreate,
+    QuizParticipationSchema,
+    QuizUpdate
+)
 from web_app.schemas.roles import Role
 
 
@@ -28,11 +43,17 @@ class QuizService:
         self,
         quiz_repository: QuizRepository,
         question_repository: QuestionRepository,
+        answer_repository: AnswerRepository,
+        user_answer_repository: UserAnswerRepository,
+        quiz_participation_repository: QuizParticipationRepository,
         company_repository: CompanyRepository,
         membership_repository: CompanyMembershipRepository
     ):
         self.quiz_repository = quiz_repository
         self.question_repository = question_repository
+        self.answer_repository = answer_repository
+        self.user_answer_repository = user_answer_repository
+        self.quiz_participation_repository = quiz_participation_repository
         self.membership_repository = membership_repository
         self.company_repository = company_repository
 
@@ -50,13 +71,13 @@ class QuizService:
         if not exists_company:
             raise CompanyNotFoundException(company_id=quiz_data.company_id)
         await self.check_is_owner_or_admin(quiz_data.company_id, current_user)
-        if not quiz_data.questions or len(quiz_data.questions) < 2:
+        if not quiz_data.questions or len(quiz_data.questions) < MIN_QUIZ_QUESTION_COUNT:
             raise InvalidFieldException(
                 "The quiz must have at least two questions."
             )
 
         for question_data in quiz_data.questions:
-            if len(question_data.answers) < 2:
+            if len(question_data.answers) < MIN_QUESTION_ANSWER_COUNT:
                 raise InvalidFieldException(
                     f"Question '{question_data.title}' must have at least two answers."
                 )
@@ -125,7 +146,7 @@ class QuizService:
             raise QuizNotFoundException(quiz_id)
         await self.check_is_owner_or_admin(quiz.company_id, current_user)
 
-        if len(question_data.answers) < 2:
+        if len(question_data.answers) < MIN_QUESTION_ANSWER_COUNT:
             raise InvalidFieldException(
                 f"Question '{question_data.title}' must have at least two answers."
             )
@@ -158,11 +179,52 @@ class QuizService:
             raise QuestionNotFoundException(question_id)
 
         remaining_questions = await self.question_repository.get_questions_for_quiz(question.quiz_id)
-        if len(remaining_questions) <= 2:
+        if len(remaining_questions) <= MIN_QUIZ_QUESTION_COUNT:
             raise InvalidFieldException("A quiz must have at least 2 questions.")
 
         await self.question_repository.delete_obj(question_id)
         await self.quiz_repository.session.commit()
+
+    async def user_quiz_participation(self, quiz_participation: QuizParticipationSchema, current_user: User):
+        user_answers = quiz_participation.user_answers
+        quiz_id = quiz_participation.quiz_id
+        quiz = await self.quiz_repository.get_obj_by_id(quiz_id)
+        if not quiz:
+            raise QuizNotFoundException(quiz_id)
+
+        questions = await self.question_repository.get_questions_for_quiz(quiz.id)
+        total_questions_count = len(questions)
+        if total_questions_count < MIN_QUIZ_QUESTION_COUNT:
+            raise InvalidFieldException("A quiz must have at least 2 questions.")
+
+        correct_answers_count = 0
+        for user_answer in user_answers:
+            question = await self.question_repository.get_obj_by_id(user_answer.question_id)
+            if not question:
+                raise QuestionNotFoundException(user_answer.question_id)
+            answer = await self.answer_repository.get_obj_by_id(user_answer.answer_id)
+            if not answer:
+                raise AnswerNotFoundException(user_answer.question_id)
+            if is_correct := answer.is_correct:
+                correct_answers_count += 1
+                user_answer_obj = UserAnswer(
+                    user_id=current_user.id,
+                    answer_id=user_answer.answer_id,
+                    question_id=question.id,
+                    is_correct=is_correct
+                )
+                await self.user_answer_repository.create_obj(user_answer_obj)
+
+        participation = QuizParticipation(
+            quiz_id=quiz_id,
+            user_id=current_user.id,
+            company_id=quiz.company_id,
+            score=correct_answers_count,
+            total_questions=total_questions_count,
+        )
+        await self.quiz_participation_repository.create_obj(participation)
+        await self.quiz_participation_repository.session.commit()
+        return participation
 
 
 def get_quiz_service(
@@ -171,6 +233,9 @@ def get_quiz_service(
     return QuizService(
         quiz_repository=QuizRepository(session),
         question_repository=QuestionRepository(session),
+        answer_repository=AnswerRepository(session),
+        user_answer_repository=UserAnswerRepository(session),
+        quiz_participation_repository=QuizParticipationRepository(session),
         company_repository=CompanyRepository(session),
         membership_repository=CompanyMembershipRepository(session),
     )
