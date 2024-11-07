@@ -98,6 +98,7 @@ async def test_set_password_success(db_session: AsyncSession):
         email="jane.smith@example.com",
     )
     await user_repository.create_obj(user)
+    await user_repository.session.commit()
 
     password_to_set = "PasswordToSet123!"
     await auth_service.set_password(user, password_to_set)

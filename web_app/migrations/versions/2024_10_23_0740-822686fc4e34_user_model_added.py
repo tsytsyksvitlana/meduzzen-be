@@ -19,7 +19,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.create_table(
-        "users",
+        "User",
         sa.Column("first_name", sa.String(length=50), nullable=True),
         sa.Column("last_name", sa.String(length=50), nullable=True),
         sa.Column("email", sa.String(), nullable=False),
@@ -32,9 +32,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_users_email"), "users", ["email"], unique=False)
+    op.create_index(op.f("ix_User_email"), "User", ["email"], unique=False)
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_users_email"), table_name="users")
-    op.drop_table("users")
+    op.drop_index(op.f("ix_User_email"), table_name="User")
+    op.drop_table("User")

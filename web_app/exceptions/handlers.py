@@ -1,6 +1,10 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
+from web_app.exceptions.application import (
+    ApplicationErrorException,
+    BadRequestException
+)
 from web_app.exceptions.auth import AuthorizationException
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
@@ -58,6 +62,18 @@ async def handle_permission_denied_exception(
     )
 
 
+async def handle_application_error_exception(
+    request: Request, exc: ApplicationErrorException
+):
+    """
+    Handles ApplicationErrorException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": exc.detail},
+    )
+
+
 async def handle_invalid_field_exception(
     request: Request, exc: InvalidFieldException
 ):
@@ -66,5 +82,17 @@ async def handle_invalid_field_exception(
     """
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.detail},
+    )
+
+
+async def handle_bad_request_exception(
+    request: Request, exc: BadRequestException
+):
+    """
+    Handles BadRequestException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTTP_4000_BAD_REQUEST,
         content={"detail": exc.detail},
     )

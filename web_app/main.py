@@ -9,13 +9,19 @@ from fastapi.security import HTTPBearer
 
 from web_app.config.settings import settings
 from web_app.db.redis_helper import redis_helper
+from web_app.exceptions.application import (
+    ApplicationErrorException,
+    BadRequestException
+)
 from web_app.exceptions.auth import AuthorizationException
 from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
 from web_app.exceptions.handlers import (
+    handle_application_error_exception,
     handle_authorization_exception,
+    handle_bad_request_exception,
     handle_invalid_field_exception,
     handle_object_already_exists_exception,
     handle_object_not_found_exception,
@@ -25,7 +31,10 @@ from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
+from web_app.routers.companies import router as companies_router
 from web_app.routers.healthcheck import router as router
+from web_app.routers.invitations import router as invitations_router
+from web_app.routers.join_requests import router as join_requests_router
 from web_app.routers.users import router as users_router
 
 logger = logging.getLogger(__name__)
@@ -51,6 +60,9 @@ auth_header = HTTPBearer()
 app.include_router(router)
 app.include_router(users_router, prefix="/users", tags=["users"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(companies_router, prefix="/company", tags=["companies"])
+app.include_router(invitations_router, prefix="/invitations", tags=["invitations"])
+app.include_router(join_requests_router, tags=["join_requests"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",
@@ -94,7 +106,13 @@ app.add_exception_handler(
     PermissionDeniedException, handle_permission_denied_exception
 )
 app.add_exception_handler(
+    ApplicationErrorException, handle_application_error_exception
+)
+app.add_exception_handler(
     InvalidFieldException, handle_invalid_field_exception
+)
+app.add_exception_handler(
+    BadRequestException, handle_bad_request_exception
 )
 
 

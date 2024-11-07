@@ -24,20 +24,16 @@ class BaseRepository(RepositoryInterface[T], Generic[T]):
 
     async def create_obj(self, obj: T) -> T:
         self.session.add(obj)
-        await self.session.commit()
-        await self.session.refresh(obj)
         return obj
 
-    async def update_obj(self, obj: T, obj_id: int) -> T:
-        await self.session.commit()
-        await self.session.refresh(obj)
+    async def update_obj(self, obj: T) -> T:
+        self.session.add(obj)
         return obj
 
     async def delete_obj(self, obj_id: int) -> T:
         obj = await self.get_obj_by_id(obj_id)
         if obj:
             await self.session.delete(obj)
-            await self.session.commit()
         return obj
 
     async def get_obj_count(self) -> int:

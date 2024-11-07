@@ -43,7 +43,9 @@ class UserService:
             email=user_data.email,
             password=hashed_password
         )
-        return await self.user_repository.create_obj(new_user)
+        await self.user_repository.create_obj(new_user)
+        await self.user_repository.session.commit()
+        return new_user
 
     async def update_user(
         self,
@@ -57,13 +59,16 @@ class UserService:
             current_user.first_name = user_update.first_name
         if user_update.last_name:
             current_user.last_name = user_update.last_name
-        return await self.user_repository.update_obj(current_user, user_id)
+        updated_user = await self.user_repository.update_obj(current_user)
+        await self.user_repository.session.commit()
+        return updated_user
 
     async def delete_user(self, user_id: int, current_user: User) -> None:
         if current_user.id != user_id:
             raise PermissionDeniedException()
         user = await self.get_user_by_id(user_id)
         await self.user_repository.delete_obj(user.id)
+        await self.user_repository.session.commit()
 
     async def get_user_by_email(self, email: str) -> User:
         user = await self.user_repository.get_user_by_email(email)
@@ -81,7 +86,9 @@ class UserService:
             last_name="",
             email=email
         )
-        return await self.user_repository.create_obj(new_user)
+        await self.user_repository.create_obj(new_user)
+        await self.user_repository.session.commit()
+        return new_user
 
 
 def get_user_service(
