@@ -15,6 +15,7 @@ class Answer(Base):
     )
 
     question = relationship("Question", back_populates="answers")
+    user_answers = relationship("UserAnswer", back_populates="answer")
 
     def __repr__(self) -> str:
         return (f"Answer("

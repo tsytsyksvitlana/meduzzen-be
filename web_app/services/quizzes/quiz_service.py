@@ -4,7 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.exceptions.companies import CompanyNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
-from web_app.exceptions.quizzes import QuizNotFoundException, QuestionNotFoundException
+from web_app.exceptions.quizzes import (
+    QuestionNotFoundException,
+    QuizNotFoundException
+)
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import User
 from web_app.models.answer import Answer

@@ -15,6 +15,7 @@ class Question(Base):
 
     quiz = relationship("Quiz", back_populates="questions")
     answers = relationship("Answer", back_populates="question", cascade="all, delete-orphan")
+    user_answers = relationship("UserAnswer", back_populates="question", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"Question(id={self.id}, title={self.title}, quiz_id={self.quiz_id})"
