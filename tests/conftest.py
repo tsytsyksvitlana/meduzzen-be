@@ -192,6 +192,13 @@ async def create_test_quizzes(db_session: AsyncSession, create_test_users, creat
                     AnswerCreate(text="4", is_correct=True),
                     AnswerCreate(text="5", is_correct=False)
                 ]
+            ),
+            QuestionCreate(
+                title="when is independence day of Ukraine",
+                answers=[
+                    AnswerCreate(text="24 August", is_correct=True),
+                    AnswerCreate(text="28 July", is_correct=False)
+                ]
             )
         ]
     )

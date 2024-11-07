@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 
 from web_app.models import User
-from web_app.schemas.quiz import QuizCreate
+from web_app.schemas.quiz import QuestionCreate, QuizCreate, QuizUpdate
 from web_app.services.quizzes.quiz_service import QuizService, get_quiz_service
 from web_app.utils.auth import get_current_user
 
@@ -16,6 +16,47 @@ async def create_quiz(
 ):
     created_quiz = await quiz_service.create_quiz(quiz_data, current_user)
     return created_quiz
+
+
+@router.put("/{quiz_id}")
+async def update_quiz(
+    quiz_id: int,
+    quiz_data: QuizUpdate,
+    current_user: User = Depends(get_current_user),
+    quiz_service: QuizService = Depends(get_quiz_service)
+):
+    updated_quiz = await quiz_service.update_quiz(
+        quiz_id, quiz_data, current_user
+    )
+    return updated_quiz
+
+
+@router.post("/{quiz_id}/questions", response_model=QuestionCreate)
+async def add_question(
+    quiz_id: int,
+    question_data: QuestionCreate,
+    current_user: User = Depends(get_current_user),
+    quiz_service: QuizService = Depends(get_quiz_service)
+):
+    question = await quiz_service.add_question_to_quiz(
+        quiz_id, question_data, current_user
+    )
+    return question
+
+
+@router.delete(
+    "/{quiz_id}/questions/{question_id}",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_question(
+    quiz_id: int,
+    question_id: int,
+    current_user: User = Depends(get_current_user),
+    quiz_service: QuizService = Depends(get_quiz_service)
+):
+    await quiz_service.delete_question_from_quiz(
+        quiz_id, question_id, current_user
+    )
 
 
 @router.get("/{company_id}")

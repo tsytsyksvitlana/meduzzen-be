@@ -11,7 +11,12 @@ from web_app.repositories.company_membership_repository import (
 from web_app.repositories.company_repository import CompanyRepository
 from web_app.repositories.question_repository import QuestionRepository
 from web_app.repositories.quiz_repository import QuizRepository
-from web_app.schemas.quiz import AnswerCreate, QuestionCreate, QuizCreate
+from web_app.schemas.quiz import (
+    AnswerCreate,
+    QuestionCreate,
+    QuizCreate,
+    QuizUpdate
+)
 from web_app.services.quizzes.quiz_service import QuizService
 
 pytestmark = pytest.mark.anyio
@@ -77,19 +82,6 @@ async def test_quiz_service_create_quiz(
                         is_correct=False,
                     )
                 ]
-            )
-        ]
-    )
-    QuestionCreate(
-        title="What is the capital of France?",
-        answers=[
-            AnswerCreate(
-                text="Paris",
-                is_correct=True,
-            ),
-            AnswerCreate(
-                text="London",
-                is_correct=False,
             )
         ]
     )
@@ -260,3 +252,159 @@ async def test_quiz_service_delete_quiz(
 
     with pytest.raises(QuizNotFoundException):
         await quiz_service.delete_quiz(quiz_id=quizzes[0].id, current_user=user)
+
+
+async def test_update_quiz(
+        db_session: AsyncSession,
+        create_test_users,
+        create_test_quizzes
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+
+    company_membership = CompanyMembership(
+        company_id=quiz.company_id,
+        user_id=user.id,
+        role="Owner"
+    )
+    db_session.add(company_membership)
+    await db_session.commit()
+
+    quiz_service = QuizService(
+        quiz_repository=QuizRepository(session=db_session),
+        question_repository=QuestionRepository(session=db_session),
+        company_repository=CompanyRepository(session=db_session),
+        membership_repository=CompanyMembershipRepository(session=db_session)
+    )
+
+    quiz_update_data = QuizUpdate(
+        title="Updated Quiz Title",
+        description="Updated description",
+        participation_frequency=5
+    )
+
+    updated_quiz = await quiz_service.update_quiz(
+        quiz_id=quiz.id,
+        quiz_data=quiz_update_data,
+        current_user=user
+    )
+    assert updated_quiz.title == quiz_update_data.title
+    assert updated_quiz.description == quiz_update_data.description
+    assert updated_quiz.participation_frequency == quiz_update_data.participation_frequency
+
+    another_user = create_test_users[1]
+    with pytest.raises(PermissionDeniedException):
+        await quiz_service.update_quiz(
+            quiz_id=quiz.id,
+            quiz_data=quiz_update_data,
+            current_user=another_user
+        )
+
+    with pytest.raises(QuizNotFoundException):
+        await quiz_service.update_quiz(
+            quiz_id=99999,
+            quiz_data=quiz_update_data,
+            current_user=user
+        )
+
+
+async def test_delete_question_from_quiz(
+        db_session: AsyncSession,
+        create_test_users,
+        create_test_quizzes
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    question = quiz.questions[0]
+
+    quiz_service = QuizService(
+        quiz_repository=QuizRepository(session=db_session),
+        question_repository=QuestionRepository(session=db_session),
+        company_repository=CompanyRepository(session=db_session),
+        membership_repository=CompanyMembershipRepository(session=db_session)
+    )
+
+    await quiz_service.delete_question_from_quiz(
+        quiz_id=quiz.id,
+        question_id=question.id,
+        current_user=user
+    )
+    remaining_questions = await quiz_service.question_repository.get_questions_for_quiz(quiz.id)
+    assert len(remaining_questions) == 2
+
+    question_to_delete = quiz.questions[1]
+    with pytest.raises(InvalidFieldException):
+        await quiz_service.delete_question_from_quiz(
+            quiz_id=quiz.id,
+            question_id=question_to_delete.id,
+            current_user=user
+        )
+
+    another_user = create_test_users[1]
+    with pytest.raises(PermissionDeniedException):
+        await quiz_service.delete_question_from_quiz(
+            quiz_id=quiz.id,
+            question_id=question.id,
+            current_user=another_user
+        )
+
+
+async def test_add_question_to_quiz(
+        db_session: AsyncSession,
+        create_test_users,
+        create_test_quizzes,
+        create_test_companies
+):
+    user = create_test_users[0]
+    company_id = create_test_companies[0].id
+    quiz = create_test_quizzes[0]
+
+    company_membership = CompanyMembership(
+        company_id=company_id,
+        user_id=user.id,
+        role="Owner"
+    )
+    db_session.add(company_membership)
+    await db_session.commit()
+
+    quiz_service = QuizService(
+        quiz_repository=QuizRepository(session=db_session),
+        question_repository=QuestionRepository(session=db_session),
+        company_repository=CompanyRepository(session=db_session),
+        membership_repository=CompanyMembershipRepository(session=db_session)
+    )
+
+    question_data = QuestionCreate(
+        title="What is the largest planet?",
+        answers=[
+            AnswerCreate(text="Jupiter", is_correct=True),
+            AnswerCreate(text="Saturn", is_correct=False)
+        ]
+    )
+
+    question = await quiz_service.add_question_to_quiz(
+        quiz_id=quiz.id,
+        question_data=question_data,
+        current_user=user
+    )
+    assert question.title == question_data.title
+    assert len(question.answers) == 2
+
+    invalid_question_data = QuestionCreate(
+        title="What is the capital of Germany?",
+        answers=[AnswerCreate(text="Berlin", is_correct=True)]
+    )
+    with pytest.raises(InvalidFieldException):
+        await quiz_service.add_question_to_quiz(
+            quiz_id=quiz.id,
+            question_data=invalid_question_data,
+            current_user=user
+        )
+
+    another_user = create_test_users[1]
+    with pytest.raises(PermissionDeniedException):
+        await quiz_service.add_question_to_quiz(
+            quiz_id=quiz.id,
+            question_data=question_data,
+            current_user=another_user
+        )
