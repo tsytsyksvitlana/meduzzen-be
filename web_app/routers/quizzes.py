@@ -99,7 +99,7 @@ async def create_quiz_participate(
     participation_schema = QuizParticipationResult(
         quiz_id=participation.quiz_id,
         total_questions=participation.total_questions,
-        correct_answers=participation.correct_answers,
+        correct_answers=participation.score,
         score_percentage=participation.calculate_score_percentage(),
     )
     return participation_schema

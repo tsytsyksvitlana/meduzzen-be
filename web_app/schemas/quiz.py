@@ -40,4 +40,4 @@ class QuizParticipationResult(BaseModel):
     quiz_id: int
     total_questions: int
     correct_answers: int
-    score_percentage: int
+    score_percentage: float
