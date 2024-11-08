@@ -1,7 +1,13 @@
 from fastapi import APIRouter, Depends, status
 
 from web_app.models import User
-from web_app.schemas.quiz import QuestionCreate, QuizCreate, QuizUpdate
+from web_app.schemas.quiz import (
+    QuestionCreate,
+    QuizCreate,
+    QuizParticipationResult,
+    QuizParticipationSchema,
+    QuizUpdate
+)
 from web_app.services.quizzes.quiz_service import QuizService, get_quiz_service
 from web_app.utils.auth import get_current_user
 
@@ -79,3 +85,21 @@ async def delete_quiz(
     quiz_service: QuizService = Depends(get_quiz_service)
 ):
     await quiz_service.delete_quiz(quiz_id, current_user)
+
+
+@router.post("/participate")
+async def create_quiz_participate(
+    quiz_participation: QuizParticipationSchema,
+    current_user: User = Depends(get_current_user),
+    quiz_service: QuizService = Depends(get_quiz_service)
+):
+    participation = await quiz_service.user_quiz_participation(
+        quiz_participation, current_user
+    )
+    participation_schema = QuizParticipationResult(
+        quiz_id=participation.quiz_id,
+        total_questions=participation.total_questions,
+        correct_answers=participation.correct_answers,
+        score_percentage=participation.calculate_score_percentage(),
+    )
+    return participation_schema

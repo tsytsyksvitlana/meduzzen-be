@@ -48,6 +48,11 @@ class Company(Base):
         back_populates="company",
         cascade="all, delete-orphan"
     )
+    participations = relationship(
+        "QuizParticipation",
+        back_populates="company",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """

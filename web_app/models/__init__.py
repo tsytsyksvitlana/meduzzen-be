@@ -8,7 +8,8 @@ __all__ = (
     "Answer",
     "Quiz",
     "QuizParticipation",
-    "Question"
+    "Question",
+    "UserAnswer"
 )
 
 from .answer import Answer
@@ -21,3 +22,4 @@ from .question import Question
 from .quiz import Quiz
 from .quiz_participation import QuizParticipation
 from .user import User
+from .user_answer import UserAnswer
