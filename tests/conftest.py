@@ -1,7 +1,9 @@
+import asyncio
 import logging
 
 import pytest
 from alembic.config import Config
+from fakeredis.aioredis import FakeRedis
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
@@ -87,6 +89,23 @@ async def db_session(session_factory) -> AsyncSession:
     async with session_factory() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture
+async def fake_redis(client):
+    client = FakeRedis()
+    yield client
+    await client.aclose()
 
 
 @pytest.fixture(scope="function")

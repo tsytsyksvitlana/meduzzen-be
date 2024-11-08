@@ -2,7 +2,6 @@ import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fakeredis.aioredis import FakeRedis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.exceptions.permission import PermissionDeniedException
@@ -400,23 +399,6 @@ async def mock_redis():
         yield mock_redis
 
 
-@pytest.fixture
-async def fake_redis():
-    client = FakeRedis()
-    yield client
-    await client.aclose()
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest.mark.asyncio
 async def test_create_quiz_participate_redis(
     db_session,
@@ -466,6 +448,5 @@ async def test_create_quiz_participate_redis(
         invalid_answer_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_answer)
         with pytest.raises(AnswerNotFoundException):
             await quiz_service.user_quiz_participation(invalid_answer_participation, user)
-
         loop = asyncio.get_event_loop()
         loop.run_until_complete(test())

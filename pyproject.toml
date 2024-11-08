@@ -25,12 +25,12 @@ fastapi-jwt = "^0.3.0"
 python-jose = "^3.3"
 pydantic-settings = "^2.6.0"
 requests = "^2.32.3"
-fakeredis = "^2.26.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pre-commit = "^4.0.1"
 anyio = "^4.6.2.post1"
+fakeredis = "^2.26.1"
 
 [build-system]
 requires = ["poetry-core"]
