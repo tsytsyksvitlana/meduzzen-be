@@ -14,6 +14,15 @@ class RedisHelper:
     async def get(self, key: str) -> str:
         return await self.redis.get(key)
 
+    async def rpush(self, key: str, value: str) -> None:
+        await self.redis.rpush(key, value)
+
+    async def lrange(self, key: str, start: int, end: int) -> list[str]:
+        return await self.redis.lrange(key, start, end)
+
+    async def sadd(self, key: str, value: str) -> None:
+        await self.redis.sadd(key, value)
+
     async def close(self) -> None:
         await self.redis.close()
 

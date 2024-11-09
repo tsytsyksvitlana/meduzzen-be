@@ -188,7 +188,36 @@ class QuizService:
         await self.question_repository.delete_obj(question_id)
         await self.quiz_repository.session.commit()
 
-    async def user_quiz_participation(self, quiz_participation: QuizParticipationSchema, current_user: User):
+    async def save_quiz_participation_to_redis(
+        self,
+        quiz_participation: QuizParticipation
+    ):
+        participation_data = {
+            "user_id": quiz_participation.user_id,
+            "company_id": quiz_participation.company_id,
+            "quiz_id": quiz_participation.quiz_id,
+            "total_questions": quiz_participation.total_questions,
+            "correct_answers": quiz_participation.score,
+            "score_percentage": quiz_participation.calculate_score_percentage(),
+        }
+
+        user_quiz_key = f"quiz:{quiz_participation.quiz_id}:user:{quiz_participation.id}"
+        await redis_helper.set(user_quiz_key, json.dumps(participation_data))
+
+        user_quizzes_key = f"user:{quiz_participation.id}:quizzes"
+        await redis_helper.rpush(user_quizzes_key, json.dumps(participation_data))
+
+        company_quiz_users_key = f"company:{quiz_participation.company_id}:quiz:{quiz_participation.quiz_id}:users"
+        await redis_helper.rpush(company_quiz_users_key, json.dumps(participation_data))
+
+        company_quizzes_key = f"company:{quiz_participation.company_id}:quizzes"
+        await redis_helper.sadd(company_quizzes_key, quiz_participation.quiz_id)
+
+    async def user_quiz_participation(
+        self,
+        quiz_participation: QuizParticipationSchema,
+        current_user: User
+    ):
         user_answers = quiz_participation.user_answers
         quiz_id = quiz_participation.quiz_id
         quiz = await self.quiz_repository.get_obj_by_id(quiz_id)
@@ -241,11 +270,39 @@ class QuizService:
         )
         await self.quiz_participation_repository.create_obj(participation)
         await self.quiz_participation_repository.session.commit()
-
-        redis_key = f"quiz:{quiz_id}:user:{current_user.id}"
-        await redis_helper.set(redis_key, json.dumps(participation_data))
+        await self.save_quiz_participation_to_redis(participation)
 
         return participation
+
+    async def export_quiz_results_for_company(
+            self, quiz_id: int, company_id: int, current_user: User
+    ) -> list[dict]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+
+        company_quiz_users_key = f"company:{company_id}:quiz:{quiz_id}:users"
+
+        raw_participation_data = await redis_helper.lrange(company_quiz_users_key, 0, -1)
+
+        participation_data = [json.loads(entry) for entry in raw_participation_data]
+
+        return participation_data
+
+    async def export_quiz_results_for_user(
+            self, quiz_id: int, user_id: int, current_user: User
+    ) -> dict:
+        if current_user.id != user_id:
+            raise PermissionDeniedException("You can only export your own quiz results.")
+
+        user_quiz_key = f"quiz:{quiz_id}:user:{user_id}"
+
+        raw_participation_data = await redis_helper.get(user_quiz_key)
+
+        if raw_participation_data:
+            participation_data = json.loads(raw_participation_data)
+        else:
+            raise QuizNotFoundException(quiz_id)
+
+        return participation_data
 
 
 def get_quiz_service(
