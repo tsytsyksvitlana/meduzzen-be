@@ -10,6 +10,7 @@ from web_app.config.constants import (
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.db.redis_helper import redis_helper
 from web_app.exceptions.companies import CompanyNotFoundException
+from web_app.exceptions.data import NoDataToExportException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
     AnswerNotFoundException,
@@ -282,6 +283,8 @@ class QuizService:
         company_quiz_users_key = f"company:{company_id}:quiz:{quiz_id}:users"
 
         raw_participation_data = await redis_helper.lrange(company_quiz_users_key, 0, -1)
+        if not raw_participation_data:
+            raise NoDataToExportException()
 
         participation_data = [json.loads(entry) for entry in raw_participation_data]
 
@@ -300,7 +303,7 @@ class QuizService:
         if raw_participation_data:
             participation_data = json.loads(raw_participation_data)
         else:
-            raise QuizNotFoundException(quiz_id)
+            raise NoDataToExportException()
 
         return participation_data
 
@@ -309,6 +312,8 @@ class QuizService:
 
         user_quizzes_key = f"user:{user_id}:quizzes"
         raw_user_quizzes = await redis_helper.lrange(user_quizzes_key, 0, -1)
+        if not raw_user_quizzes:
+            raise NoDataToExportException()
 
         user_quizzes = [json.loads(entry) for entry in raw_user_quizzes]
         return user_quizzes
@@ -324,7 +329,7 @@ class QuizService:
         if raw_quiz_result:
             quiz_result = json.loads(raw_quiz_result)
         else:
-            raise QuizNotFoundException(quiz_id)
+            raise NoDataToExportException()
         return quiz_result
 
 
