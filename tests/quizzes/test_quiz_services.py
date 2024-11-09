@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from web_app.exceptions.data import NoDataToExportException
+from web_app.exceptions.data import DataNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
     AnswerNotFoundException,
@@ -539,7 +539,7 @@ async def test_export_quiz_results_for_user(
         )
 
     mock_redis.get.return_value = None
-    with pytest.raises(NoDataToExportException):
+    with pytest.raises(DataNotFoundException):
         await quiz_service.export_quiz_results_for_user(
             quiz_id, user.id, current_user=user
         )

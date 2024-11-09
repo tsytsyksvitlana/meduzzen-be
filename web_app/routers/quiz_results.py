@@ -3,11 +3,52 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import User
+from web_app.schemas.quiz import LastQuizParticipation, QuizScoreTimeData
+from web_app.schemas.user import OverallUserRating
 from web_app.services.quizzes.quiz_service import QuizService, get_quiz_service
 from web_app.utils.auth import get_current_user
 from web_app.utils.data_exporter import DataExporter
 
 router = APIRouter()
+
+
+@router.get("/user/{user_id}/overall_rating", response_model=OverallUserRating)
+async def get_user_overall_rating(
+    user_id: int,
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    """
+    Retrieve the overall rating (average score) for a specific user across all quizzes.
+    """
+    user_rating = await quiz_service.get_user_overall_rating(user_id)
+    return user_rating
+
+
+@router.get("/user/{user_id}/quiz_scores_with_time", response_model=list[QuizScoreTimeData])
+async def get_quiz_scores_with_time(
+    user_id: int,
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    """
+    Endpoint to get user's average scores for each quiz over time, grouped by month.
+    """
+    quiz_scores = await quiz_service.get_user_quiz_scores_with_time(user_id)
+    return quiz_scores
+
+
+@router.get(
+    "/user/{user_id}/last_quiz_participations",
+    response_model=list[LastQuizParticipation]
+)
+async def get_user_last_quiz_participations(
+    user_id: int,
+    quiz_service: QuizService = Depends(get_quiz_service),
+):
+    """
+    Endpoint to get the user's last participation date for each quiz.
+    """
+    last_participations = await quiz_service.get_user_last_quiz_participations(user_id)
+    return last_participations
 
 
 async def generate_export_response(data, file_name: str, export_format: str):

@@ -29,7 +29,6 @@ from web_app.exceptions.handlers import (
 )
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.validation import InvalidFieldException
-from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
 from web_app.routers.companies import router as companies_router
 from web_app.routers.healthcheck import router as router
@@ -45,7 +44,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up...")
-    setup_logger(settings.fastapi.ENV_MODE)
+    # setup_logger(settings.fastapi.ENV_MODE)
 
     await redis_helper.redis.ping()
     logger.info("Redis connected.")

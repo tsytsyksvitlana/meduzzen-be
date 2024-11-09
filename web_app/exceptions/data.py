@@ -1,7 +1,7 @@
 from web_app.exceptions.base import ObjectNotFoundException
 
 
-class NoDataToExportException(ObjectNotFoundException):
+class DataNotFoundException(ObjectNotFoundException):
     def __init__(self, message="No data available for export."):
         super().__init__(message, field=None)
 
