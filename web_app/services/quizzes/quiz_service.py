@@ -204,13 +204,13 @@ class QuizService:
         user_quiz_key = f"quiz:{quiz_participation.quiz_id}:user:{quiz_participation.id}"
         await redis_helper.set(user_quiz_key, json.dumps(participation_data))
 
-        user_quizzes_key = f"user:{quiz_participation.id}:quizzes"
+        user_quizzes_key = f"user:{quiz_participation.user_id}:quizzes"
         await redis_helper.rpush(user_quizzes_key, json.dumps(participation_data))
 
         company_quiz_users_key = f"company:{quiz_participation.company_id}:quiz:{quiz_participation.quiz_id}:users"
         await redis_helper.rpush(company_quiz_users_key, json.dumps(participation_data))
 
-        company_quizzes_key = f"company:{quiz_participation.company_id}:quizzes"
+        company_quizzes_key = f"company:{quiz_participation.company_id}:user:{quiz_participation.user_id}:quizzes"
         await redis_helper.sadd(company_quizzes_key, quiz_participation.quiz_id)
 
     async def user_quiz_participation(
@@ -291,7 +291,7 @@ class QuizService:
             self, quiz_id: int, user_id: int, current_user: User
     ) -> dict:
         if current_user.id != user_id:
-            raise PermissionDeniedException("You can only export your own quiz results.")
+            raise PermissionDeniedException()
 
         user_quiz_key = f"quiz:{quiz_id}:user:{user_id}"
 
@@ -303,6 +303,29 @@ class QuizService:
             raise QuizNotFoundException(quiz_id)
 
         return participation_data
+
+    async def export_all_quiz_results_for_user(self, company_id: int, user_id: int, current_user: User):
+        await self.check_is_owner_or_admin(company_id, current_user)
+
+        user_quizzes_key = f"user:{user_id}:quizzes"
+        raw_user_quizzes = await redis_helper.lrange(user_quizzes_key, 0, -1)
+
+        user_quizzes = [json.loads(entry) for entry in raw_user_quizzes]
+        return user_quizzes
+
+    async def export_all_quiz_results_for_company(
+        self, company_id, quiz_id, user_id: int, current_user: User
+    ):
+        await self.check_is_owner_or_admin(company_id, current_user)
+
+        user_quiz_key = f"company:{company_id}:user:{user_id}:quizzes"
+        raw_quiz_result = await redis_helper.get(user_quiz_key)
+
+        if raw_quiz_result:
+            quiz_result = json.loads(raw_quiz_result)
+        else:
+            raise QuizNotFoundException(quiz_id)
+        return quiz_result
 
 
 def get_quiz_service(

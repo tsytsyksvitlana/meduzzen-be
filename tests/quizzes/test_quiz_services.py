@@ -490,7 +490,6 @@ async def test_export_quiz_results_for_company(
     assert results[0]["score_percentage"] == 80
 
 
-@pytest.mark.asyncio
 async def test_export_quiz_results_for_user(
     db_session,
     create_test_users,
@@ -543,3 +542,79 @@ async def test_export_quiz_results_for_user(
         await quiz_service.export_quiz_results_for_user(
             quiz_id, user.id, current_user=user
         )
+
+
+async def test_export_all_quiz_results_for_user(
+    db_session,
+    create_test_users,
+    create_test_quizzes,
+    quiz_service,
+    mock_redis
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+    quiz_id = quiz.id
+
+    mock_participation_data = [
+        json.dumps({
+            "user_id": user.id,
+            "company_id": quiz.company_id,
+            "quiz_id": quiz_id,
+            "total_questions": 8,
+            "correct_answers": 7,
+            "score_percentage": 87.5
+        })
+    ]
+
+    mock_redis.lrange.return_value = mock_participation_data
+
+    results = await quiz_service.export_all_quiz_results_for_user(
+        company_id, user.id, current_user=user
+    )
+
+    assert len(results) == len(mock_participation_data)
+    assert results[0]["user_id"] == user.id
+    assert results[0]["score_percentage"] == 87.5
+
+    another_user = create_test_users[1]
+    with pytest.raises(PermissionDeniedException):
+        await quiz_service.export_all_quiz_results_for_user(
+            company_id, user.id, current_user=another_user
+        )
+
+
+async def test_export_all_quiz_results_for_company(
+    db_session,
+    create_test_users,
+    create_test_quizzes,
+    quiz_service: QuizService,
+    mock_redis,
+    event_loop
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+    quiz_id = quiz.id
+
+    mock_quiz_result = {
+        "user_id": user.id,
+        "company_id": quiz.company_id,
+        "quiz_id": quiz_id,
+        "total_questions": 8,
+        "correct_answers": 7,
+        "score_percentage": 87.5,
+    }
+    mock_redis.get.return_value = json.dumps(mock_quiz_result)
+
+    result = await quiz_service.export_all_quiz_results_for_company(
+        company_id=company_id, quiz_id=quiz_id, user_id=user.id, current_user=user
+    )
+
+    assert result["user_id"] == user.id
+    assert result["score_percentage"] == 87.5
+    assert result["total_questions"] == 8
+    assert result["correct_answers"] == 7
+
+    user_quiz_key = f"company:{company_id}:user:{user.id}:quizzes"
+    mock_redis.get.assert_called_with(user_quiz_key)

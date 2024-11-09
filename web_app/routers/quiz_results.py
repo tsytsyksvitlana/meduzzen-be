@@ -66,3 +66,42 @@ async def export_user_quiz_results(
     )
     file_name = f"quiz_{quiz_id}_user_{user_id}_results"
     return await generate_export_response(data, file_name, export_format)
+
+
+@router.get("/company/{company_id}/user/{user_id}/quizzes/export")
+async def export_user_quizzes_results(
+        company_id: int,
+        user_id: int,
+        export_format: str,
+        current_user: User = Depends(get_current_user),
+        quiz_service: QuizService = Depends(get_quiz_service)
+):
+    """
+    Export all quizzes for a specific user within a company in either JSON or CSV format.
+    """
+    user_quizzes = await quiz_service.export_all_quiz_results_for_user(
+        company_id, user_id, current_user
+    )
+
+    file_name = f"user_{user_id}_company_{company_id}_all_quizzes"
+    return await generate_export_response(user_quizzes, file_name, export_format)
+
+
+@router.get("/company/{company_id}/user/{user_id}/quiz/{quiz_id}/export")
+async def get_specific_quiz_result_for_user_in_company(
+        company_id: int,
+        user_id: int,
+        quiz_id: int,
+        export_format: str,
+        current_user: User = Depends(get_current_user),
+        quiz_service: QuizService = Depends(get_quiz_service)
+):
+    """
+    Export the specific quiz result for a user in a company in either JSON or CSV format.
+    """
+    quiz_result = await quiz_service.export_all_quiz_results_for_company(
+        company_id, quiz_id, user_id, current_user
+    )
+
+    file_name = f"quiz_{quiz_id}_user_{user_id}_company_{company_id}_result"
+    return await generate_export_response([quiz_result], file_name, export_format)
