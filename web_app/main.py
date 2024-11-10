@@ -37,6 +37,7 @@ from web_app.routers.companies import router as companies_router
 from web_app.routers.healthcheck import router as router
 from web_app.routers.invitations import router as invitations_router
 from web_app.routers.join_requests import router as join_requests_router
+from web_app.routers.notifications import router as notifications_router
 from web_app.routers.quiz_results import router as quiz_results_router
 from web_app.routers.quizzes import router as quizzes_router
 from web_app.routers.users import router as users_router
@@ -69,6 +70,7 @@ app.include_router(invitations_router, prefix="/invitations", tags=["invitations
 app.include_router(join_requests_router, tags=["join_requests"])
 app.include_router(quizzes_router, prefix="/quizzes", tags=["quizzes"])
 app.include_router(quiz_results_router, tags=["quiz_results"])
+app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 
 origins = [
     f"http://{settings.fastapi.SERVER_HOST}:{settings.fastapi.SERVER_PORT}",

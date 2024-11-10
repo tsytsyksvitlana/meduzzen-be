@@ -17,7 +17,13 @@ from tests.config.postgres_config import test_postgres_settings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
-from web_app.models import Company, CompanyMembership, QuizParticipation, User
+from web_app.models import (
+    Company,
+    CompanyMembership,
+    Notification,
+    QuizParticipation,
+    User
+)
 from web_app.models.base import Base
 from web_app.repositories.answer_repository import AnswerRepository
 from web_app.repositories.company_membership_repository import (
@@ -30,6 +36,7 @@ from web_app.repositories.quiz_participation_repository import (
 )
 from web_app.repositories.quiz_repository import QuizRepository
 from web_app.repositories.user_answer_repository import UserAnswerRepository
+from web_app.schemas.notification import NotificationStatus
 from web_app.schemas.quiz import AnswerCreate, QuestionCreate, QuizCreate
 from web_app.services.quizzes.quiz_service import QuizService
 from web_app.utils.password_manager import PasswordManager
@@ -295,6 +302,20 @@ async def create_test_quiz_participations(db_session, create_test_users, create_
     await db_session.commit()
 
     return participations
+
+
+@pytest.fixture
+async def create_test_notifications(db_session: AsyncSession, create_test_users):
+    user = create_test_users[0]
+    notifications = [
+        Notification(user_id=user.id, message="Test notification 1", status=NotificationStatus.UNREAD.value),
+        Notification(user_id=user.id, message="Test notification 2", status=NotificationStatus.READ.value),
+        Notification(user_id=user.id, message="Test notification 3", status=NotificationStatus.UNREAD.value),
+    ]
+    for notification in notifications:
+        db_session.add(notification)
+    await db_session.commit()
+    return notifications
 
 
 @pytest.fixture(scope="function")
