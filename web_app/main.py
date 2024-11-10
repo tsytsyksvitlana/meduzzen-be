@@ -18,10 +18,12 @@ from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
+from web_app.exceptions.data import DataNotFoundException
 from web_app.exceptions.handlers import (
     handle_application_error_exception,
     handle_authorization_exception,
     handle_bad_request_exception,
+    handle_data_request_exception,
     handle_invalid_field_exception,
     handle_object_already_exists_exception,
     handle_object_not_found_exception,
@@ -29,6 +31,7 @@ from web_app.exceptions.handlers import (
 )
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.validation import InvalidFieldException
+from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
 from web_app.routers.companies import router as companies_router
 from web_app.routers.healthcheck import router as router
@@ -44,7 +47,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up...")
-    # setup_logger(settings.fastapi.ENV_MODE)
+    setup_logger(settings.fastapi.ENV_MODE)
 
     await redis_helper.redis.ping()
     logger.info("Redis connected.")
@@ -116,6 +119,9 @@ app.add_exception_handler(
 )
 app.add_exception_handler(
     BadRequestException, handle_bad_request_exception
+)
+app.add_exception_handler(
+    DataNotFoundException, handle_data_request_exception
 )
 
 

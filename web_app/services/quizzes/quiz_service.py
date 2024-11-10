@@ -34,13 +34,16 @@ from web_app.repositories.quiz_participation_repository import (
 from web_app.repositories.quiz_repository import QuizRepository
 from web_app.repositories.user_answer_repository import UserAnswerRepository
 from web_app.schemas.quiz import (
+    CompanyAverageScoreData,
     LastQuizParticipation,
     MonthlyQuizScore,
     QuestionCreate,
     QuizCreate,
     QuizParticipationSchema,
     QuizScoreTimeData,
-    QuizUpdate
+    QuizUpdate,
+    UserLastQuizAttempt,
+    UserQuizDetailScoreData
 )
 from web_app.schemas.roles import Role
 from web_app.schemas.user import OverallUserRating
@@ -193,6 +196,26 @@ class QuizService:
         await self.question_repository.delete_obj(question_id)
         await self.quiz_repository.session.commit()
 
+    async def _get_user_scores_by_quiz(
+            self, participations: list
+    ) -> dict:
+        scores_by_quiz = {}
+
+        for participation in participations:
+            quiz = participation.quiz
+            if quiz:
+                month_year = participation.participated_at.strftime("%Y-%m")
+                score_percentage = participation.calculate_score_percentage()
+
+                if quiz.id not in scores_by_quiz:
+                    scores_by_quiz[quiz.id] = {}
+                if month_year not in scores_by_quiz[quiz.id]:
+                    scores_by_quiz[quiz.id][month_year] = []
+
+                scores_by_quiz[quiz.id][month_year].append(score_percentage)
+
+        return scores_by_quiz
+
     async def get_user_overall_rating(self, user_id: int):
         participations = await self.quiz_participation_repository.get_quizzes_by_user_id(user_id)
         if not participations:
@@ -217,30 +240,18 @@ class QuizService:
         if not participations:
             raise DataNotFoundException("User has no participations in quizzes.")
 
-        scores_by_quiz = {}
-        for participation in participations:
-            quiz = participation.quiz
-            if quiz:
-                month_year = participation.participated_at.strftime("%Y-%m")
-                score_percentage = participation.calculate_score_percentage()
+        scores_by_quiz = await self._get_user_scores_by_quiz(participations)
 
-                if quiz.id not in scores_by_quiz:
-                    scores_by_quiz[quiz.id] = {}
-                if month_year not in scores_by_quiz[quiz.id]:
-                    scores_by_quiz[quiz.id][month_year] = []
-
-                scores_by_quiz[quiz.id][month_year].append(score_percentage)
-
-        quiz_scores_time_data = []
-        for quiz_id, time_data in scores_by_quiz.items():
-            monthly_scores = {}
-            for month_year, scores in time_data.items():
-                average_score = sum(scores) / len(scores)
-                monthly_scores[month_year] = MonthlyQuizScore(scores=scores, average=average_score)
-
-            quiz_scores_time_data.append(
-                QuizScoreTimeData(quiz_id=quiz_id, scores_by_month=monthly_scores)
+        quiz_scores_time_data = [
+            QuizScoreTimeData(
+                quiz_id=quiz_id,
+                scores_by_month={
+                    month_year: MonthlyQuizScore(scores=scores, average=sum(scores) / len(scores))
+                    for month_year, scores in time_data.items()
+                }
             )
+            for quiz_id, time_data in scores_by_quiz.items()
+        ]
 
         return quiz_scores_time_data
 
@@ -407,6 +418,84 @@ class QuizService:
         else:
             raise DataNotFoundException()
         return quiz_result
+
+    async def get_company_average_scores_over_time(
+            self, company_id: int, current_user: User
+    ) -> list[CompanyAverageScoreData]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+        participations = await self.quiz_participation_repository.get_company_participations(company_id)
+
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this company.")
+
+        scores_over_time = {}
+
+        for participation in participations:
+            month_year = participation.participated_at.strftime("%Y-%m")
+            score_percentage = participation.calculate_score_percentage()
+
+            if month_year not in scores_over_time:
+                scores_over_time[month_year] = []
+
+            scores_over_time[month_year].append(score_percentage)
+
+        company_scores_data = [
+            CompanyAverageScoreData(
+                time_period=month_year,
+                average_score=(sum(scores) / len(scores))
+            )
+            for month_year, scores in scores_over_time.items()
+        ]
+
+        return company_scores_data
+
+    async def get_user_detailed_quiz_scores_for_company(
+            self, company_id: int, user_id: int, current_user: User
+    ) -> list[UserQuizDetailScoreData]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+        participations = await self.quiz_participation_repository.get_company_quizzes_by_user_id_with_quiz(
+            user_id, company_id
+        )
+
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this user in company.")
+
+        user_scores = await self._get_user_scores_by_quiz(participations)
+
+        detailed_scores = [
+            UserQuizDetailScoreData(
+                quiz_id=quiz_id,
+                scores_by_month={
+                    month_year: sum(scores) / len(scores)
+                    for month_year, scores in time_data.items()
+                }
+            )
+            for quiz_id, time_data in user_scores.items()
+        ]
+        return detailed_scores
+
+    async def get_company_users_last_quiz_attempts(
+            self, company_id: int, current_user: User
+    ) -> list[UserLastQuizAttempt]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+        participations = await self.quiz_participation_repository.get_company_participations(company_id)
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this company.")
+
+        last_quiz_attempts = {}
+        for participation in participations:
+            user = participation.user
+            if (
+                    user.id not in last_quiz_attempts
+                    or last_quiz_attempts[user.id].last_attempt_at < participation.participated_at
+            ):
+                last_quiz_attempts[user.id] = UserLastQuizAttempt(
+                    user_id=user.id,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    last_attempt_at=participation.participated_at,
+                )
+        return list(last_quiz_attempts.values())
 
 
 def get_quiz_service(
