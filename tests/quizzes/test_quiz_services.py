@@ -1,5 +1,6 @@
 import asyncio
 import json
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -619,3 +620,126 @@ async def test_export_all_quiz_results_for_company(
 
     user_quiz_key = f"company:{company_id}:user:{user.id}:quizzes"
     mock_redis.get.assert_called_with(user_quiz_key)
+
+
+async def test_get_company_average_scores_over_time(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+
+    result = await quiz_service.get_company_average_scores_over_time(
+        company_id, user
+    )
+
+    assert len(result) == 1
+    assert result[0].time_period == "2024-09"
+    assert result[0].average_score == 80.0
+
+
+async def test_get_user_detailed_quiz_scores_for_company(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+
+    result = await quiz_service.get_user_detailed_quiz_scores_for_company(
+        company_id, user.id, user
+    )
+
+    assert len(result) == 2
+    assert result[0].quiz_id == quiz.id
+    assert "2024-09" in result[0].scores_by_month
+    assert result[0].scores_by_month["2024-09"] == 85.0
+
+
+async def test_get_company_users_last_quiz_attempts(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+
+    result = await quiz_service.get_company_users_last_quiz_attempts(
+        company_id, user
+    )
+
+    assert len(result) == 1
+    assert result[0].user_id == user.id
+    assert result[0].last_attempt_at.replace(tzinfo=None) == datetime(
+        2024, 9, 15, 0, 0
+    )
+
+
+async def test_get_user_overall_rating(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+
+    result = await quiz_service.get_user_overall_rating(user.id)
+
+    assert result.user_id == user.id
+    assert result.overall_rating == 80.0
+
+
+async def test_get_user_quiz_scores_with_time(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+
+    result = await quiz_service.get_user_quiz_scores_with_time(user.id)
+
+    assert len(result) == 2
+    assert result[0].quiz_id == quiz.id
+    assert "2024-09" in result[0].scores_by_month
+    assert result[0].scores_by_month["2024-09"].average == 85.0
+
+
+async def test_get_user_last_quiz_participations(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz_1 = create_test_quizzes[0]
+    quiz_2 = create_test_quizzes[1]
+
+    result = await quiz_service.get_user_last_quiz_participations(user.id)
+
+    assert len(result) == 2
+    assert result[0].quiz_id == quiz_1.id
+    assert result[0].quiz_title == quiz_1.title
+    assert result[0].last_participation_at == datetime(2024, 9, 15)
+
+    assert result[1].quiz_id == quiz_2.id
+    assert result[1].quiz_title == quiz_2.title
+    assert result[1].last_participation_at == datetime(2024, 9, 10)
+
+    user_no_participation = create_test_users[1]
+
+    with pytest.raises(
+            DataNotFoundException,
+            match="No quiz participations found for this user"
+    ):
+        await quiz_service.get_user_last_quiz_participations(
+            user_no_participation.id
+        )
