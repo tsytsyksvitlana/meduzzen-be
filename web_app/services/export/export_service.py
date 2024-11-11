@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.db.redis_helper import redis_helper
-from web_app.exceptions.data import NoDataToExportException
+from web_app.exceptions.data import DataNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import User
@@ -38,7 +38,7 @@ class ExportService:
         company_quiz_users_key = f"company:{company_id}:quiz:{quiz_id}:users"
         raw_participation_data = await redis_helper.lrange(company_quiz_users_key, 0, -1)
         if not raw_participation_data:
-            raise NoDataToExportException()
+            raise DataNotFoundException()
         participation_data = [json.loads(entry) for entry in raw_participation_data]
         return await self._generate_export_response(participation_data, file_name, export_format)
 
@@ -51,7 +51,7 @@ class ExportService:
         user_quiz_key = f"quiz:{quiz_id}:user:{user_id}"
         raw_participation_data = await redis_helper.get(user_quiz_key)
         if not raw_participation_data:
-            raise NoDataToExportException()
+            raise DataNotFoundException()
         participation_data = json.loads(raw_participation_data)
         return await self._generate_export_response(participation_data, file_name, export_format)
 
@@ -63,7 +63,7 @@ class ExportService:
         user_quizzes_key = f"user:{user_id}:quizzes"
         raw_user_quizzes = await redis_helper.lrange(user_quizzes_key, 0, -1)
         if not raw_user_quizzes:
-            raise NoDataToExportException()
+            raise DataNotFoundException()
         user_quizzes = [json.loads(entry) for entry in raw_user_quizzes]
         return await self._generate_export_response(user_quizzes, file_name, export_format)
 
@@ -75,7 +75,7 @@ class ExportService:
         user_quiz_key = f"company:{company_id}:user:{user_id}:quizzes"
         raw_quiz_result = await redis_helper.get(user_quiz_key)
         if not raw_quiz_result:
-            raise NoDataToExportException()
+            raise DataNotFoundException()
         quiz_result = json.loads(raw_quiz_result)
         return await self._generate_export_response(quiz_result, file_name, export_format)
 
