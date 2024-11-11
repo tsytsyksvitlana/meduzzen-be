@@ -1,7 +1,7 @@
 import asyncio
 import json
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -332,7 +332,7 @@ async def test_add_question_to_quiz(
 
 
 async def test_user_quiz_participation(
-        db_session, create_test_users, create_test_quizzes, quiz_service: QuizService
+    db_session, create_test_users, create_test_quizzes, quiz_service: QuizService, mock_redis
 ):
     user = create_test_users[0]
     quiz = create_test_quizzes[0]
@@ -352,8 +352,9 @@ async def test_user_quiz_participation(
             "answer_id": quiz.questions[2].answers[0].id
         }
     ]
-    quiz_participation = QuizParticipationSchema(user_answers=user_answers,
-                                                 quiz_id=quiz_id)
+    quiz_participation = QuizParticipationSchema(
+        user_answers=user_answers, quiz_id=quiz_id
+    )
 
     participation = await quiz_service.user_quiz_participation(quiz_participation, user)
 
@@ -393,24 +394,13 @@ async def test_user_quiz_participation(
         await quiz_service.user_quiz_participation(invalid_answer_participation, user)
 
 
-@pytest.fixture
-async def mock_redis():
-    with patch("web_app.services.quizzes.quiz_service.redis_helper", autospec=True) as mock_redis:
-        mock_redis.exists = AsyncMock(return_value=0)
-        mock_redis.get = AsyncMock(return_value="")
-        mock_redis.set = AsyncMock(return_value=True)
-        mock_redis.rpush = AsyncMock(return_value=True)
-        mock_redis.sadd = AsyncMock(return_value=True)
-        yield mock_redis
-
-
 @pytest.mark.asyncio
 async def test_create_quiz_participate_redis(
     db_session,
     create_test_users,
     create_test_quizzes,
     quiz_service: QuizService,
-    fake_redis
+    mock_redis
 ):
     async def test():
         user = create_test_users[0]
@@ -428,7 +418,7 @@ async def test_create_quiz_participate_redis(
             user_answers=user_answers
         )
 
-        with patch("web_app.db.redis_helper.redis_helper", fake_redis):
+        with patch("web_app.db.redis_helper.redis_helper", mock_redis):
             participation = await quiz_service.user_quiz_participation(quiz_participation_data, user)
 
             assert participation.quiz_id == quiz_id
@@ -437,7 +427,7 @@ async def test_create_quiz_participate_redis(
             assert participation.total_questions == 3
 
             redis_key = f"quiz:{quiz_id}:user:{user.id}"
-            redis_data = await fake_redis.get(redis_key)
+            redis_data = await mock_redis.get(redis_key)
             assert redis_data is not None
 
         invalid_quiz_participation = QuizParticipationSchema(quiz_id=99999, user_answers=user_answers)
