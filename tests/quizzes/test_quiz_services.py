@@ -1,3 +1,6 @@
+import asyncio
+from unittest.mock import patch
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -326,7 +329,7 @@ async def test_add_question_to_quiz(
 
 
 async def test_user_quiz_participation(
-        db_session, create_test_users, create_test_quizzes, quiz_service: QuizService
+        db_session, create_test_users, create_test_quizzes, quiz_service: QuizService, mock_redis
 ):
     user = create_test_users[0]
     quiz = create_test_quizzes[0]
@@ -385,3 +388,56 @@ async def test_user_quiz_participation(
     )
     with pytest.raises(AnswerNotFoundException):
         await quiz_service.user_quiz_participation(invalid_answer_participation, user)
+
+
+@pytest.mark.asyncio
+async def test_create_quiz_participate_redis(
+    db_session,
+    create_test_users,
+    create_test_quizzes,
+    quiz_service: QuizService,
+    mock_redis
+):
+    async def test():
+        user = create_test_users[0]
+        quiz = create_test_quizzes[0]
+        quiz_id = quiz.id
+
+        user_answers = [
+            {"question_id": quiz.questions[0].id, "answer_id": quiz.questions[0].answers[0].id},
+            {"question_id": quiz.questions[1].id, "answer_id": quiz.questions[1].answers[0].id},
+            {"question_id": quiz.questions[2].id, "answer_id": quiz.questions[2].answers[0].id}
+        ]
+
+        quiz_participation_data = QuizParticipationSchema(
+            quiz_id=quiz_id,
+            user_answers=user_answers
+        )
+
+        with patch("web_app.db.redis_helper.redis_helper", mock_redis):
+            participation = await quiz_service.user_quiz_participation(quiz_participation_data, user)
+
+            assert participation.quiz_id == quiz_id
+            assert participation.user_id == user.id
+            assert participation.score == 3
+            assert participation.total_questions == 3
+
+            redis_key = f"quiz:{quiz_id}:user:{user.id}"
+            redis_data = await mock_redis.get(redis_key)
+            assert redis_data is not None
+
+        invalid_quiz_participation = QuizParticipationSchema(quiz_id=99999, user_answers=user_answers)
+        with pytest.raises(QuizNotFoundException):
+            await quiz_service.user_quiz_participation(invalid_quiz_participation, user)
+
+        invalid_question_answer = [{"question_id": 9999, "answer_id": quiz.questions[0].answers[0].id}]
+        invalid_question_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_question_answer)
+        with pytest.raises(QuestionNotFoundException):
+            await quiz_service.user_quiz_participation(invalid_question_participation, user)
+
+        invalid_answer = [{"question_id": quiz.questions[0].id, "answer_id": 9999}]
+        invalid_answer_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_answer)
+        with pytest.raises(AnswerNotFoundException):
+            await quiz_service.user_quiz_participation(invalid_answer_participation, user)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(test())

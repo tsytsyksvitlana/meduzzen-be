@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from alembic.config import Config
@@ -28,6 +30,7 @@ from web_app.repositories.quiz_participation_repository import (
 from web_app.repositories.quiz_repository import QuizRepository
 from web_app.repositories.user_answer_repository import UserAnswerRepository
 from web_app.schemas.quiz import AnswerCreate, QuestionCreate, QuizCreate
+from web_app.services.export.export_service import ExportService
 from web_app.services.quizzes.quiz_service import QuizService
 from web_app.utils.password_manager import PasswordManager
 
@@ -87,6 +90,16 @@ async def db_session(session_factory) -> AsyncSession:
     async with session_factory() as session:
         yield session
         await session.rollback()
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="function")
@@ -233,6 +246,17 @@ async def create_test_quizzes(db_session: AsyncSession, create_test_users, creat
     return [created_quiz_1, created_quiz_2]
 
 
+@pytest.fixture
+async def mock_redis():
+    with patch("web_app.services.quizzes.quiz_service.redis_helper", autospec=True) as mock_redis:
+        mock_redis.exists = AsyncMock(return_value=0)
+        mock_redis.get = AsyncMock(return_value="")
+        mock_redis.set = AsyncMock(return_value=True)
+        mock_redis.rpush = AsyncMock(return_value=True)
+        mock_redis.sadd = AsyncMock(return_value=True)
+        yield mock_redis
+
+
 @pytest.fixture(scope="function")
 def anyio_backend():
     return "asyncio"
@@ -262,3 +286,9 @@ def quiz_service(repositories):
         company_repository=repositories["company_repository"],
         membership_repository=repositories["membership_repository"]
     )
+
+
+@pytest.fixture
+async def export_service(db_session):
+    membership_repository = CompanyMembershipRepository(db_session)
+    return ExportService(membership_repository=membership_repository)

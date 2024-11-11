@@ -1,3 +1,5 @@
+import json
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,7 @@ from web_app.config.constants import (
     MIN_QUIZ_QUESTION_COUNT
 )
 from web_app.db.postgres_helper import postgres_helper as pg_helper
+from web_app.db.redis_helper import redis_helper
 from web_app.exceptions.companies import CompanyNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
@@ -185,7 +188,36 @@ class QuizService:
         await self.question_repository.delete_obj(question_id)
         await self.quiz_repository.session.commit()
 
-    async def user_quiz_participation(self, quiz_participation: QuizParticipationSchema, current_user: User):
+    async def save_quiz_participation_to_redis(
+        self,
+        quiz_participation: QuizParticipation
+    ):
+        participation_data = {
+            "user_id": quiz_participation.user_id,
+            "company_id": quiz_participation.company_id,
+            "quiz_id": quiz_participation.quiz_id,
+            "total_questions": quiz_participation.total_questions,
+            "correct_answers": quiz_participation.score,
+            "score_percentage": quiz_participation.calculate_score_percentage(),
+        }
+
+        user_quiz_key = f"quiz:{quiz_participation.quiz_id}:user:{quiz_participation.id}"
+        await redis_helper.set(user_quiz_key, json.dumps(participation_data))
+
+        user_quizzes_key = f"user:{quiz_participation.user_id}:quizzes"
+        await redis_helper.rpush(user_quizzes_key, json.dumps(participation_data))
+
+        company_quiz_users_key = f"company:{quiz_participation.company_id}:quiz:{quiz_participation.quiz_id}:users"
+        await redis_helper.rpush(company_quiz_users_key, json.dumps(participation_data))
+
+        company_quizzes_key = f"company:{quiz_participation.company_id}:user:{quiz_participation.user_id}:quizzes"
+        await redis_helper.sadd(company_quizzes_key, quiz_participation.quiz_id)
+
+    async def user_quiz_participation(
+        self,
+        quiz_participation: QuizParticipationSchema,
+        current_user: User
+    ):
         user_answers = quiz_participation.user_answers
         quiz_id = quiz_participation.quiz_id
         quiz = await self.quiz_repository.get_obj_by_id(quiz_id)
@@ -197,6 +229,13 @@ class QuizService:
         if total_questions_count < MIN_QUIZ_QUESTION_COUNT:
             raise InvalidFieldException("A quiz must have at least 2 questions.")
 
+        participation_data = {
+            "user_id": current_user.id,
+            "company_id": quiz.company_id,
+            "quiz_id": quiz_id,
+            "question_answers": []
+        }
+
         correct_answers_count = 0
         for user_answer in user_answers:
             question = await self.question_repository.get_obj_by_id(user_answer.question_id)
@@ -207,6 +246,13 @@ class QuizService:
                 raise AnswerNotFoundException(user_answer.question_id)
             if is_correct := answer.is_correct:
                 correct_answers_count += 1
+
+                participation_data["question_answers"].append({
+                    "question_id": question.id,
+                    "user_answer_id": answer.id,
+                    "is_correct": is_correct
+                })
+
                 user_answer_obj = UserAnswer(
                     user_id=current_user.id,
                     answer_id=user_answer.answer_id,
@@ -224,6 +270,8 @@ class QuizService:
         )
         await self.quiz_participation_repository.create_obj(participation)
         await self.quiz_participation_repository.session.commit()
+        await self.save_quiz_participation_to_redis(participation)
+
         return participation
 
 

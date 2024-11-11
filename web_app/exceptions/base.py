@@ -1,5 +1,5 @@
 class ObjectNotFoundException(Exception):
-    def __init__(self, object_type: str, field: str):
+    def __init__(self, object_type: str, field: str | None):
         self.object_type = object_type
         self.field = field
 

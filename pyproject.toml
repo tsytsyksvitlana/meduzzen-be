@@ -30,6 +30,7 @@ requests = "^2.32.3"
 pytest = "^8.3.3"
 pre-commit = "^4.0.1"
 anyio = "^4.6.2.post1"
+fakeredis = "^2.26.1"
 
 [build-system]
 requires = ["poetry-core"]
