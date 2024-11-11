@@ -10,7 +10,6 @@ from web_app.config.constants import (
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.db.redis_helper import redis_helper
 from web_app.exceptions.companies import CompanyNotFoundException
-from web_app.exceptions.data import NoDataToExportException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
     AnswerNotFoundException,
@@ -274,63 +273,6 @@ class QuizService:
         await self.save_quiz_participation_to_redis(participation)
 
         return participation
-
-    async def export_quiz_results_for_company(
-            self, quiz_id: int, company_id: int, current_user: User
-    ) -> list[dict]:
-        await self.check_is_owner_or_admin(company_id, current_user)
-
-        company_quiz_users_key = f"company:{company_id}:quiz:{quiz_id}:users"
-
-        raw_participation_data = await redis_helper.lrange(company_quiz_users_key, 0, -1)
-        if not raw_participation_data:
-            raise NoDataToExportException()
-
-        participation_data = [json.loads(entry) for entry in raw_participation_data]
-
-        return participation_data
-
-    async def export_quiz_results_for_user(
-            self, quiz_id: int, user_id: int, current_user: User
-    ) -> dict:
-        if current_user.id != user_id:
-            raise PermissionDeniedException()
-
-        user_quiz_key = f"quiz:{quiz_id}:user:{user_id}"
-
-        raw_participation_data = await redis_helper.get(user_quiz_key)
-
-        if raw_participation_data:
-            participation_data = json.loads(raw_participation_data)
-        else:
-            raise NoDataToExportException()
-
-        return participation_data
-
-    async def export_all_quiz_results_for_user(self, company_id: int, user_id: int, current_user: User):
-        await self.check_is_owner_or_admin(company_id, current_user)
-
-        user_quizzes_key = f"user:{user_id}:quizzes"
-        raw_user_quizzes = await redis_helper.lrange(user_quizzes_key, 0, -1)
-        if not raw_user_quizzes:
-            raise NoDataToExportException()
-
-        user_quizzes = [json.loads(entry) for entry in raw_user_quizzes]
-        return user_quizzes
-
-    async def export_all_quiz_results_for_company(
-        self, company_id, quiz_id, user_id: int, current_user: User
-    ):
-        await self.check_is_owner_or_admin(company_id, current_user)
-
-        user_quiz_key = f"company:{company_id}:user:{user_id}:quizzes"
-        raw_quiz_result = await redis_helper.get(user_quiz_key)
-
-        if raw_quiz_result:
-            quiz_result = json.loads(raw_quiz_result)
-        else:
-            raise NoDataToExportException()
-        return quiz_result
 
 
 def get_quiz_service(
