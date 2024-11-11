@@ -34,6 +34,7 @@ from web_app.exceptions.validation import InvalidFieldException
 from web_app.logging.logger import setup_logger
 from web_app.routers.auth import router as auth_router
 from web_app.routers.companies import router as companies_router
+from web_app.routers.export import router as export_router
 from web_app.routers.healthcheck import router as router
 from web_app.routers.invitations import router as invitations_router
 from web_app.routers.join_requests import router as join_requests_router
@@ -69,6 +70,7 @@ app.include_router(companies_router, prefix="/company", tags=["companies"])
 app.include_router(invitations_router, prefix="/invitations", tags=["invitations"])
 app.include_router(join_requests_router, tags=["join_requests"])
 app.include_router(quizzes_router, prefix="/quizzes", tags=["quizzes"])
+app.include_router(export_router, tags=["export_data"])
 app.include_router(quiz_results_router, tags=["quiz_results"])
 app.include_router(notifications_router, prefix="/notifications", tags=["notifications"])
 
