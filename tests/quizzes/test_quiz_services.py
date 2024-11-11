@@ -1,5 +1,4 @@
 import asyncio
-import json
 from datetime import datetime
 from unittest.mock import patch
 
@@ -14,7 +13,7 @@ from web_app.exceptions.quizzes import (
     QuizNotFoundException
 )
 from web_app.exceptions.validation import InvalidFieldException
-from web_app.models import CompanyMembership, QuizParticipation
+from web_app.models import CompanyMembership
 from web_app.schemas.quiz import (
     AnswerCreate,
     QuestionCreate,
@@ -430,186 +429,30 @@ async def test_create_quiz_participate_redis(
             redis_data = await mock_redis.get(redis_key)
             assert redis_data is not None
 
-        invalid_quiz_participation = QuizParticipationSchema(quiz_id=99999, user_answers=user_answers)
+        invalid_quiz_participation = QuizParticipationSchema(
+            quiz_id=99999,
+            user_answers=user_answers
+        )
         with pytest.raises(QuizNotFoundException):
             await quiz_service.user_quiz_participation(invalid_quiz_participation, user)
 
         invalid_question_answer = [{"question_id": 9999, "answer_id": quiz.questions[0].answers[0].id}]
-        invalid_question_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_question_answer)
+        invalid_question_participation = QuizParticipationSchema(
+            quiz_id=quiz_id,
+            user_answers=invalid_question_answer
+        )
         with pytest.raises(QuestionNotFoundException):
             await quiz_service.user_quiz_participation(invalid_question_participation, user)
 
         invalid_answer = [{"question_id": quiz.questions[0].id, "answer_id": 9999}]
-        invalid_answer_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_answer)
+        invalid_answer_participation = QuizParticipationSchema(
+            quiz_id=quiz_id,
+            user_answers=invalid_answer
+        )
         with pytest.raises(AnswerNotFoundException):
             await quiz_service.user_quiz_participation(invalid_answer_participation, user)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(test())
-
-
-async def test_export_quiz_results_for_company(
-    db_session,
-    create_test_users,
-    create_test_quizzes,
-    quiz_service: QuizService,
-    mock_redis,
-    event_loop
-):
-    user = create_test_users[0]
-    quiz = create_test_quizzes[0]
-    company_id = quiz.company_id
-    quiz_id = quiz.id
-
-    mock_participation_data = [
-        json.dumps({
-            "user_id": user.id,
-            "company_id": quiz.company_id,
-            "quiz_id": quiz_id,
-            "total_questions": 8,
-            "correct_answers": 100,
-            "score_percentage": 80,
-        })
-    ]
-
-    mock_redis.lrange.return_value = mock_participation_data
-
-    results = await quiz_service.export_quiz_results_for_company(
-        quiz_id, company_id, current_user=user
-    )
-
-    assert len(results) == len(mock_participation_data)
-    assert results[0]["user_id"] == user.id
-    assert results[0]["score_percentage"] == 80
-
-
-async def test_export_quiz_results_for_user(
-    db_session,
-    create_test_users,
-    create_test_quizzes,
-    quiz_service,
-    mock_redis,
-    event_loop
-):
-    user = create_test_users[0]
-    quiz = create_test_quizzes[0]
-    quiz_id = quiz.id
-
-    mock_participation_data = json.dumps({
-        "user_id": user.id,
-        "company_id": quiz.company_id,
-        "quiz_id": quiz_id,
-        "correct_answers": 8,
-        "total_questions": 10,
-        "score_percentage": 80,
-    })
-
-    quiz_participation = QuizParticipation(
-        user_id=user.id,
-        quiz_id=quiz_id,
-        company_id=quiz.company_id,
-        score=8,
-        total_questions=10,
-    )
-
-    await quiz_service.quiz_repository.create_obj(quiz_participation)
-    await quiz_service.quiz_repository.session.commit()
-
-    mock_redis.get.return_value = mock_participation_data
-
-    result = await quiz_service.export_quiz_results_for_user(
-        quiz_id, user.id, current_user=user
-    )
-
-    assert result["user_id"] == user.id
-    assert result["score_percentage"] == 80
-
-    another_user = create_test_users[1]
-    with pytest.raises(PermissionDeniedException):
-        await quiz_service.export_quiz_results_for_user(
-            quiz_id, user.id, current_user=another_user
-        )
-
-    mock_redis.get.return_value = None
-    with pytest.raises(DataNotFoundException):
-        await quiz_service.export_quiz_results_for_user(
-            quiz_id, user.id, current_user=user
-        )
-
-
-async def test_export_all_quiz_results_for_user(
-    db_session,
-    create_test_users,
-    create_test_quizzes,
-    quiz_service,
-    mock_redis
-):
-    user = create_test_users[0]
-    quiz = create_test_quizzes[0]
-    company_id = quiz.company_id
-    quiz_id = quiz.id
-
-    mock_participation_data = [
-        json.dumps({
-            "user_id": user.id,
-            "company_id": quiz.company_id,
-            "quiz_id": quiz_id,
-            "total_questions": 8,
-            "correct_answers": 7,
-            "score_percentage": 87.5
-        })
-    ]
-
-    mock_redis.lrange.return_value = mock_participation_data
-
-    results = await quiz_service.export_all_quiz_results_for_user(
-        company_id, user.id, current_user=user
-    )
-
-    assert len(results) == len(mock_participation_data)
-    assert results[0]["user_id"] == user.id
-    assert results[0]["score_percentage"] == 87.5
-
-    another_user = create_test_users[1]
-    with pytest.raises(PermissionDeniedException):
-        await quiz_service.export_all_quiz_results_for_user(
-            company_id, user.id, current_user=another_user
-        )
-
-
-async def test_export_all_quiz_results_for_company(
-    db_session,
-    create_test_users,
-    create_test_quizzes,
-    quiz_service: QuizService,
-    mock_redis,
-    event_loop
-):
-    user = create_test_users[0]
-    quiz = create_test_quizzes[0]
-    company_id = quiz.company_id
-    quiz_id = quiz.id
-
-    mock_quiz_result = {
-        "user_id": user.id,
-        "company_id": quiz.company_id,
-        "quiz_id": quiz_id,
-        "total_questions": 8,
-        "correct_answers": 7,
-        "score_percentage": 87.5,
-    }
-    mock_redis.get.return_value = json.dumps(mock_quiz_result)
-
-    result = await quiz_service.export_all_quiz_results_for_company(
-        company_id=company_id, quiz_id=quiz_id, user_id=user.id, current_user=user
-    )
-
-    assert result["user_id"] == user.id
-    assert result["score_percentage"] == 87.5
-    assert result["total_questions"] == 8
-    assert result["correct_answers"] == 7
-
-    user_quiz_key = f"company:{company_id}:user:{user.id}:quizzes"
-    mock_redis.get.assert_called_with(user_quiz_key)
 
 
 async def test_get_company_average_scores_over_time(
