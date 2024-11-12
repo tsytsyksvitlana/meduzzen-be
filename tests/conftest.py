@@ -30,6 +30,7 @@ from web_app.repositories.company_membership_repository import (
     CompanyMembershipRepository
 )
 from web_app.repositories.company_repository import CompanyRepository
+from web_app.repositories.notification_repository import NotificationRepository
 from web_app.repositories.question_repository import QuestionRepository
 from web_app.repositories.quiz_participation_repository import (
     QuizParticipationRepository
@@ -338,6 +339,7 @@ def repositories(db_session: AsyncSession):
         "answer_repository": AnswerRepository(session=db_session),
         "user_answer_repository": UserAnswerRepository(session=db_session),
         "quiz_participation_repository": QuizParticipationRepository(session=db_session),
+        "notification_repository": NotificationRepository(session=db_session),
     }
 
 
@@ -350,7 +352,8 @@ def quiz_service(repositories):
         user_answer_repository=repositories["user_answer_repository"],
         quiz_participation_repository=repositories["quiz_participation_repository"],
         company_repository=repositories["company_repository"],
-        membership_repository=repositories["membership_repository"]
+        membership_repository=repositories["membership_repository"],
+        notification_repository=repositories["notification_repository"],
     )
 
 

@@ -2,9 +2,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, subqueryload
 
-from web_app.models import CompanyMembership
+from web_app.models import CompanyMembership, User
 from web_app.models.company import Company
 from web_app.repositories.base_repository import BaseRepository
+from web_app.schemas.roles import Role
 
 
 class CompanyRepository(BaseRepository[Company]):
@@ -49,3 +50,15 @@ class CompanyRepository(BaseRepository[Company]):
             .execution_options(synchronize_session="fetch")
         )
         await self.session.execute(query)
+
+    async def get_users_for_company(self, company_id: int):
+        query = (
+            select(User)
+            .join(CompanyMembership)
+            .where(
+                CompanyMembership.company_id == company_id,
+                CompanyMembership.role == Role.MEMBER.value,
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalars().all()
