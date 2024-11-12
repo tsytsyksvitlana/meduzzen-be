@@ -1,9 +1,11 @@
 import asyncio
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from web_app.exceptions.data import DataNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
     AnswerNotFoundException,
@@ -329,7 +331,7 @@ async def test_add_question_to_quiz(
 
 
 async def test_user_quiz_participation(
-        db_session, create_test_users, create_test_quizzes, quiz_service: QuizService, mock_redis
+    db_session, create_test_users, create_test_quizzes, quiz_service: QuizService, mock_redis
 ):
     user = create_test_users[0]
     quiz = create_test_quizzes[0]
@@ -349,8 +351,9 @@ async def test_user_quiz_participation(
             "answer_id": quiz.questions[2].answers[0].id
         }
     ]
-    quiz_participation = QuizParticipationSchema(user_answers=user_answers,
-                                                 quiz_id=quiz_id)
+    quiz_participation = QuizParticipationSchema(
+        user_answers=user_answers, quiz_id=quiz_id
+    )
 
     participation = await quiz_service.user_quiz_participation(quiz_participation, user)
 
@@ -426,18 +429,150 @@ async def test_create_quiz_participate_redis(
             redis_data = await mock_redis.get(redis_key)
             assert redis_data is not None
 
-        invalid_quiz_participation = QuizParticipationSchema(quiz_id=99999, user_answers=user_answers)
+        invalid_quiz_participation = QuizParticipationSchema(
+            quiz_id=99999,
+            user_answers=user_answers
+        )
         with pytest.raises(QuizNotFoundException):
             await quiz_service.user_quiz_participation(invalid_quiz_participation, user)
 
         invalid_question_answer = [{"question_id": 9999, "answer_id": quiz.questions[0].answers[0].id}]
-        invalid_question_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_question_answer)
+        invalid_question_participation = QuizParticipationSchema(
+            quiz_id=quiz_id,
+            user_answers=invalid_question_answer
+        )
         with pytest.raises(QuestionNotFoundException):
             await quiz_service.user_quiz_participation(invalid_question_participation, user)
 
         invalid_answer = [{"question_id": quiz.questions[0].id, "answer_id": 9999}]
-        invalid_answer_participation = QuizParticipationSchema(quiz_id=quiz_id, user_answers=invalid_answer)
+        invalid_answer_participation = QuizParticipationSchema(
+            quiz_id=quiz_id,
+            user_answers=invalid_answer
+        )
         with pytest.raises(AnswerNotFoundException):
             await quiz_service.user_quiz_participation(invalid_answer_participation, user)
         loop = asyncio.get_event_loop()
         loop.run_until_complete(test())
+
+
+async def test_get_company_average_scores_over_time(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+
+    result = await quiz_service.get_company_average_scores_over_time(
+        company_id, user
+    )
+
+    assert len(result) == 1
+    assert result[0].time_period == "2024-09"
+    assert result[0].average_score == 80.0
+
+
+async def test_get_user_detailed_quiz_scores_for_company(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+
+    result = await quiz_service.get_user_detailed_quiz_scores_for_company(
+        company_id, user.id, user
+    )
+
+    assert len(result) == 2
+    assert result[0].quiz_id == quiz.id
+    assert "2024-09" in result[0].scores_by_month
+    assert result[0].scores_by_month["2024-09"] == 85.0
+
+
+async def test_get_company_users_last_quiz_attempts(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+    company_id = quiz.company_id
+
+    result = await quiz_service.get_company_users_last_quiz_attempts(
+        company_id, user
+    )
+
+    assert len(result) == 1
+    assert result[0].user_id == user.id
+    assert result[0].last_attempt_at.replace(tzinfo=None) == datetime(
+        2024, 9, 15, 0, 0
+    )
+
+
+async def test_get_user_overall_rating(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+
+    result = await quiz_service.get_user_overall_rating(user.id)
+
+    assert result.user_id == user.id
+    assert result.overall_rating == 80.0
+
+
+async def test_get_user_quiz_scores_with_time(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz = create_test_quizzes[0]
+
+    result = await quiz_service.get_user_quiz_scores_with_time(user.id)
+
+    assert len(result) == 2
+    assert result[0].quiz_id == quiz.id
+    assert "2024-09" in result[0].scores_by_month
+    assert result[0].scores_by_month["2024-09"].average == 85.0
+
+
+async def test_get_user_last_quiz_participations(
+    create_test_users,
+    create_test_quizzes,
+    create_test_quiz_participations,
+    quiz_service: QuizService
+):
+    user = create_test_users[0]
+    quiz_1 = create_test_quizzes[0]
+    quiz_2 = create_test_quizzes[1]
+
+    result = await quiz_service.get_user_last_quiz_participations(user.id)
+
+    assert len(result) == 2
+    assert result[0].quiz_id == quiz_1.id
+    assert result[0].quiz_title == quiz_1.title
+    assert result[0].last_participation_at == datetime(2024, 9, 15)
+
+    assert result[1].quiz_id == quiz_2.id
+    assert result[1].quiz_title == quiz_2.title
+    assert result[1].last_participation_at == datetime(2024, 9, 10)
+
+    user_no_participation = create_test_users[1]
+
+    with pytest.raises(
+            DataNotFoundException,
+            match="No quiz participations found for this user"
+    ):
+        await quiz_service.get_user_last_quiz_participations(
+            user_no_participation.id
+        )

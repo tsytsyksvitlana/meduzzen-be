@@ -127,3 +127,11 @@ class UserNewPassword(BaseModel):
         if not PASSWORD_REGEX.match(v):
             raise InvalidPasswordException()
         return v
+
+
+class OverallUserRating(BaseModel):
+    """
+    Model representing the overall rating of a user as a percentage score.
+    """
+    user_id: int
+    overall_rating: float

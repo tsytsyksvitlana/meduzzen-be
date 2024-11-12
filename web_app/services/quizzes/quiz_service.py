@@ -10,6 +10,7 @@ from web_app.config.constants import (
 from web_app.db.postgres_helper import postgres_helper as pg_helper
 from web_app.db.redis_helper import redis_helper
 from web_app.exceptions.companies import CompanyNotFoundException
+from web_app.exceptions.data import DataNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.quizzes import (
     AnswerNotFoundException,
@@ -33,12 +34,19 @@ from web_app.repositories.quiz_participation_repository import (
 from web_app.repositories.quiz_repository import QuizRepository
 from web_app.repositories.user_answer_repository import UserAnswerRepository
 from web_app.schemas.quiz import (
+    CompanyAverageScoreData,
+    LastQuizParticipation,
+    MonthlyQuizScore,
     QuestionCreate,
     QuizCreate,
     QuizParticipationSchema,
-    QuizUpdate
+    QuizScoreTimeData,
+    QuizUpdate,
+    UserLastQuizAttempt,
+    UserQuizDetailScoreData
 )
 from web_app.schemas.roles import Role
+from web_app.schemas.user import OverallUserRating
 
 
 class QuizService:
@@ -188,6 +196,86 @@ class QuizService:
         await self.question_repository.delete_obj(question_id)
         await self.quiz_repository.session.commit()
 
+    async def _get_user_scores_by_quiz(
+            self, participations: list
+    ) -> dict:
+        scores_by_quiz = {}
+
+        for participation in participations:
+            quiz = participation.quiz
+            if quiz:
+                month_year = participation.participated_at.strftime("%Y-%m")
+                score_percentage = participation.calculate_score_percentage()
+
+                if quiz.id not in scores_by_quiz:
+                    scores_by_quiz[quiz.id] = {}
+                if month_year not in scores_by_quiz[quiz.id]:
+                    scores_by_quiz[quiz.id][month_year] = []
+
+                scores_by_quiz[quiz.id][month_year].append(score_percentage)
+
+        return scores_by_quiz
+
+    async def get_user_overall_rating(self, user_id: int):
+        participations = await self.quiz_participation_repository.get_quizzes_by_user_id(user_id)
+        if not participations:
+            raise DataNotFoundException("User has no participations in quizzes.")
+
+        total_score, total_questions = 0, 0
+        for participation in participations:
+            total_score += participation.score
+            total_questions += participation.total_questions
+
+        if total_questions == 0:
+            raise DataNotFoundException("User have no questions in quizzes.")
+
+        overall_rating = (total_score / total_questions)*100
+        return OverallUserRating(
+            user_id=user_id,
+            overall_rating=overall_rating
+        )
+
+    async def get_user_quiz_scores_with_time(self, user_id: int) -> list[QuizScoreTimeData]:
+        participations = await self.quiz_participation_repository.get_quizzes_by_user_id_with_quiz(user_id)
+        if not participations:
+            raise DataNotFoundException("User has no participations in quizzes.")
+
+        scores_by_quiz = await self._get_user_scores_by_quiz(participations)
+
+        quiz_scores_time_data = [
+            QuizScoreTimeData(
+                quiz_id=quiz_id,
+                scores_by_month={
+                    month_year: MonthlyQuizScore(scores=scores, average=sum(scores) / len(scores))
+                    for month_year, scores in time_data.items()
+                }
+            )
+            for quiz_id, time_data in scores_by_quiz.items()
+        ]
+
+        return quiz_scores_time_data
+
+    async def get_user_last_quiz_participations(self, user_id: int) -> list[LastQuizParticipation]:
+        participations = await self.quiz_participation_repository.get_quizzes_by_user_id_with_quiz(user_id)
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this user")
+
+        last_participations = {}
+        for participation in participations:
+            quiz = participation.quiz
+            if quiz:
+                if (
+                        quiz.id not in last_participations
+                        or last_participations[quiz.id].last_participation_at < participation.participated_at
+                ):
+                    last_participations[quiz.id] = LastQuizParticipation(
+                        quiz_id=quiz.id,
+                        quiz_title=quiz.title,
+                        last_participation_at=participation.participated_at,
+                    )
+
+        return list(last_participations.values())
+
     async def save_quiz_participation_to_redis(
         self,
         quiz_participation: QuizParticipation
@@ -273,6 +361,141 @@ class QuizService:
         await self.save_quiz_participation_to_redis(participation)
 
         return participation
+
+    async def export_quiz_results_for_company(
+            self, quiz_id: int, company_id: int, current_user: User
+    ) -> list[dict]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+
+        company_quiz_users_key = f"company:{company_id}:quiz:{quiz_id}:users"
+
+        raw_participation_data = await redis_helper.lrange(company_quiz_users_key, 0, -1)
+        if not raw_participation_data:
+            raise DataNotFoundException()
+
+        participation_data = [json.loads(entry) for entry in raw_participation_data]
+
+        return participation_data
+
+    async def export_quiz_results_for_user(
+            self, quiz_id: int, user_id: int, current_user: User
+    ) -> dict:
+        if current_user.id != user_id:
+            raise PermissionDeniedException()
+
+        user_quiz_key = f"quiz:{quiz_id}:user:{user_id}"
+
+        raw_participation_data = await redis_helper.get(user_quiz_key)
+
+        if raw_participation_data:
+            participation_data = json.loads(raw_participation_data)
+        else:
+            raise DataNotFoundException()
+
+        return participation_data
+
+    async def export_all_quiz_results_for_user(self, company_id: int, user_id: int, current_user: User):
+        await self.check_is_owner_or_admin(company_id, current_user)
+
+        user_quizzes_key = f"user:{user_id}:quizzes"
+        raw_user_quizzes = await redis_helper.lrange(user_quizzes_key, 0, -1)
+        if not raw_user_quizzes:
+            raise DataNotFoundException()
+
+        user_quizzes = [json.loads(entry) for entry in raw_user_quizzes]
+        return user_quizzes
+
+    async def export_all_quiz_results_for_company(
+        self, company_id, quiz_id, user_id: int, current_user: User
+    ):
+        await self.check_is_owner_or_admin(company_id, current_user)
+
+        user_quiz_key = f"company:{company_id}:user:{user_id}:quizzes"
+        raw_quiz_result = await redis_helper.get(user_quiz_key)
+
+        if raw_quiz_result:
+            quiz_result = json.loads(raw_quiz_result)
+        else:
+            raise DataNotFoundException()
+        return quiz_result
+
+    async def get_company_average_scores_over_time(
+            self, company_id: int, current_user: User
+    ) -> list[CompanyAverageScoreData]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+        participations = await self.quiz_participation_repository.get_company_participations(company_id)
+
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this company.")
+
+        scores_over_time = {}
+
+        for participation in participations:
+            month_year = participation.participated_at.strftime("%Y-%m")
+            score_percentage = participation.calculate_score_percentage()
+
+            if month_year not in scores_over_time:
+                scores_over_time[month_year] = []
+
+            scores_over_time[month_year].append(score_percentage)
+
+        company_scores_data = [
+            CompanyAverageScoreData(
+                time_period=month_year,
+                average_score=(sum(scores) / len(scores))
+            )
+            for month_year, scores in scores_over_time.items()
+        ]
+
+        return company_scores_data
+
+    async def get_user_detailed_quiz_scores_for_company(
+            self, company_id: int, user_id: int, current_user: User
+    ) -> list[UserQuizDetailScoreData]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+        participations = await self.quiz_participation_repository.get_company_quizzes_by_user_id_with_quiz(
+            user_id, company_id
+        )
+
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this user in company.")
+
+        user_scores = await self._get_user_scores_by_quiz(participations)
+
+        detailed_scores = [
+            UserQuizDetailScoreData(
+                quiz_id=quiz_id,
+                scores_by_month={
+                    month_year: sum(scores) / len(scores)
+                    for month_year, scores in time_data.items()
+                }
+            )
+            for quiz_id, time_data in user_scores.items()
+        ]
+        return detailed_scores
+
+    async def get_company_users_last_quiz_attempts(
+            self, company_id: int, current_user: User
+    ) -> list[UserLastQuizAttempt]:
+        await self.check_is_owner_or_admin(company_id, current_user)
+        participations = await self.quiz_participation_repository.get_company_participations(company_id)
+        if not participations:
+            raise DataNotFoundException("No quiz participations found for this company.")
+
+        last_quiz_attempts = {}
+        for participation in participations:
+            user = participation.user
+            if (
+                    user.id not in last_quiz_attempts
+                    or last_quiz_attempts[user.id].last_attempt_at < participation.participated_at
+            ):
+                last_quiz_attempts[user.id] = UserLastQuizAttempt(
+                    user_id=user.id,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                    last_attempt_at=participation.participated_at,
+                )
+        return list(last_quiz_attempts.values())
 
 
 def get_quiz_service(

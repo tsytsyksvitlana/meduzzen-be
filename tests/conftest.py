@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -16,7 +17,7 @@ from tests.config.postgres_config import test_postgres_settings
 from web_app.config.settings import settings
 from web_app.db.postgres_helper import postgres_helper
 from web_app.main import app
-from web_app.models import Company, CompanyMembership, User
+from web_app.models import Company, CompanyMembership, QuizParticipation, User
 from web_app.models.base import Base
 from web_app.repositories.answer_repository import AnswerRepository
 from web_app.repositories.company_membership_repository import (
@@ -255,6 +256,50 @@ async def mock_redis():
         mock_redis.rpush = AsyncMock(return_value=True)
         mock_redis.sadd = AsyncMock(return_value=True)
         yield mock_redis
+
+
+@pytest.fixture(scope="function")
+async def create_test_quiz_participations(db_session, create_test_users, create_test_quizzes):
+    user = create_test_users[0]
+    quiz_1 = create_test_quizzes[0]
+    quiz_2 = create_test_quizzes[1]
+
+    participations_data = [
+        {
+            "quiz_id": quiz_1.id,
+            "user_id": user.id,
+            "score": 8,
+            "total_questions": 10,
+            "participated_at": datetime(2024, 9, 1),
+            "company_id": quiz_1.company_id,
+        },
+        {
+            "quiz_id": quiz_1.id,
+            "user_id": user.id,
+            "score": 9,
+            "total_questions": 10,
+            "participated_at": datetime(2024, 9, 15),
+            "company_id": quiz_1.company_id,
+        },
+        {
+            "quiz_id": quiz_2.id,
+            "user_id": user.id,
+            "score": 7,
+            "total_questions": 10,
+            "participated_at": datetime(2024, 9, 10),
+            "company_id": quiz_2.company_id,
+        },
+    ]
+
+    participations = []
+    for participation_data in participations_data:
+        participation = QuizParticipation(**participation_data)
+        db_session.add(participation)
+        participations.append(participation)
+
+    await db_session.commit()
+
+    return participations
 
 
 @pytest.fixture(scope="function")

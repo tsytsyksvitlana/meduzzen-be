@@ -10,6 +10,7 @@ from web_app.exceptions.base import (
     ObjectAlreadyExistsException,
     ObjectNotFoundException
 )
+from web_app.exceptions.data import DataNotFoundException
 from web_app.exceptions.permission import PermissionDeniedException
 from web_app.exceptions.validation import InvalidFieldException
 
@@ -93,6 +94,18 @@ async def handle_bad_request_exception(
     Handles BadRequestException and shows the error details.
     """
     return JSONResponse(
-        status_code=status.HTTTP_4000_BAD_REQUEST,
+        status_code=status.HTTTP_400_BAD_REQUEST,
+        content={"detail": exc.detail},
+    )
+
+
+async def handle_data_request_exception(
+    request: Request, exc: DataNotFoundException
+):
+    """
+    Handles DataNotFoundException and shows the error details.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
         content={"detail": exc.detail},
     )
