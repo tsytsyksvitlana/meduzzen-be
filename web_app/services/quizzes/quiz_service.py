@@ -18,7 +18,7 @@ from web_app.exceptions.quizzes import (
     QuizNotFoundException
 )
 from web_app.exceptions.validation import InvalidFieldException
-from web_app.models import QuizParticipation, User, UserAnswer
+from web_app.models import Notification, QuizParticipation, User, UserAnswer
 from web_app.models.answer import Answer
 from web_app.models.question import Question
 from web_app.models.quiz import Quiz
@@ -27,6 +27,7 @@ from web_app.repositories.company_membership_repository import (
     CompanyMembershipRepository
 )
 from web_app.repositories.company_repository import CompanyRepository
+from web_app.repositories.notification_repository import NotificationRepository
 from web_app.repositories.question_repository import QuestionRepository
 from web_app.repositories.quiz_participation_repository import (
     QuizParticipationRepository
@@ -58,7 +59,8 @@ class QuizService:
         user_answer_repository: UserAnswerRepository,
         quiz_participation_repository: QuizParticipationRepository,
         company_repository: CompanyRepository,
-        membership_repository: CompanyMembershipRepository
+        membership_repository: CompanyMembershipRepository,
+        notification_repository: NotificationRepository,
     ):
         self.quiz_repository = quiz_repository
         self.question_repository = question_repository
@@ -67,6 +69,7 @@ class QuizService:
         self.quiz_participation_repository = quiz_participation_repository
         self.membership_repository = membership_repository
         self.company_repository = company_repository
+        self.notification_repository = notification_repository
 
     async def check_is_owner_or_admin(self, company_id: int, user: User):
         membership = await self.membership_repository.get_user_company_membership(
@@ -111,6 +114,18 @@ class QuizService:
 
         await self.quiz_repository.create_obj(quiz)
         await self.quiz_repository.session.commit()
+
+        users = await self.company_repository.get_users_for_company(quiz.company_id)
+
+        for user in users:
+            message = (
+                "A new quiz has been created."
+                "You are invited to participate!"
+            )
+            notification = Notification(user_id=user.id, message=message)
+            await self.notification_repository.create_obj(notification)
+            await self.notification_repository.session.flush()
+        await self.notification_repository.session.commit()
 
         return quiz
 
@@ -509,4 +524,5 @@ def get_quiz_service(
         quiz_participation_repository=QuizParticipationRepository(session),
         company_repository=CompanyRepository(session),
         membership_repository=CompanyMembershipRepository(session),
+        notification_repository=NotificationRepository(session),
     )

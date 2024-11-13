@@ -21,27 +21,34 @@ from web_app.schemas.quiz import (
     QuizParticipationSchema,
     QuizUpdate
 )
+from web_app.schemas.roles import Role
 from web_app.services.quizzes.quiz_service import QuizService
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_quiz_service_create_quiz(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_companies,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_companies,
+    quiz_service: QuizService,
 ):
     create_test_company = create_test_companies[0]
-    user = create_test_users[0]
+    user_owner = create_test_users[0]
+    user_member = create_test_users[1]
     company_id = create_test_company.id
 
-    company_membership = CompanyMembership(
+    owner_membership = CompanyMembership(
         company_id=company_id,
-        user_id=user.id,
-        role="Owner",
+        user_id=user_owner.id,
+        role=Role.OWNER.value,
     )
-    db_session.add(company_membership)
+    member_membership = CompanyMembership(
+        company_id=company_id,
+        user_id=user_member.id,
+        role=Role.MEMBER.value,
+    )
+    db_session.add_all([owner_membership, member_membership])
     await db_session.commit()
 
     quiz_data = QuizCreate(
@@ -67,17 +74,21 @@ async def test_quiz_service_create_quiz(
         ]
     )
 
-    await quiz_service.check_is_owner_or_admin(company_id=company_id, user=user)
+    await quiz_service.check_is_owner_or_admin(company_id=company_id, user=user_owner)
 
-    created_quiz = await quiz_service.create_quiz(quiz_data, current_user=user)
+    created_quiz = await quiz_service.create_quiz(quiz_data, current_user=user_owner)
 
     assert created_quiz.title == quiz_data.title
     assert len(created_quiz.questions) == 2
     assert len(created_quiz.questions[0].answers) == 2
 
-    another_user = create_test_users[1]
+    notification = await quiz_service.notification_repository.get_notifications_by_user_and_status(
+        user_member.id, None
+    )
+    assert notification is not None
+
     with pytest.raises(PermissionDeniedException):
-        await quiz_service.check_is_owner_or_admin(company_id=company_id, user=another_user)
+        await quiz_service.check_is_owner_or_admin(company_id=company_id, user=user_member)
 
     invalid_quiz_data = QuizCreate(
         title="Invalid Quiz",
@@ -92,14 +103,14 @@ async def test_quiz_service_create_quiz(
         ]
     )
     with pytest.raises(InvalidFieldException):
-        await quiz_service.create_quiz(invalid_quiz_data, current_user=user)
+        await quiz_service.create_quiz(invalid_quiz_data, current_user=user_owner)
 
 
 async def test_quiz_service_check_is_owner_or_admin(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_companies,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_companies,
+    quiz_service: QuizService
 ):
     create_test_company = create_test_companies[0]
     user = create_test_users[0]
@@ -120,10 +131,10 @@ async def test_quiz_service_check_is_owner_or_admin(
 
 
 async def test_quiz_service_create_quiz_with_invalid_permissions(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_companies,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_companies,
+    quiz_service: QuizService
 ):
     create_test_company = create_test_companies[0]
     user = create_test_users[0]
@@ -151,11 +162,11 @@ async def test_quiz_service_create_quiz_with_invalid_permissions(
 
 
 async def test_quiz_service_get_quizzes_for_company(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_companies,
-        create_test_quizzes,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_companies,
+    create_test_quizzes,
+    quiz_service: QuizService
 ):
     create_test_company = create_test_companies[0]
     company_id = create_test_company.id
@@ -171,10 +182,10 @@ async def test_quiz_service_get_quizzes_for_company(
 
 
 async def test_quiz_service_delete_quiz(
-        db_session: AsyncSession,
-        create_test_quizzes,
-        create_test_users,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_quizzes,
+    create_test_users,
+    quiz_service: QuizService
 ):
     quizzes = create_test_quizzes
     user = create_test_users[0]
@@ -199,10 +210,10 @@ async def test_quiz_service_delete_quiz(
 
 
 async def test_update_quiz(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_quizzes,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_quizzes,
+    quiz_service: QuizService
 ):
     user = create_test_users[0]
     quiz = create_test_quizzes[0]
@@ -247,10 +258,10 @@ async def test_update_quiz(
 
 
 async def test_delete_question_from_quiz(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_quizzes,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_quizzes,
+    quiz_service: QuizService
 ):
     user = create_test_users[0]
     quiz = create_test_quizzes[0]
@@ -282,11 +293,11 @@ async def test_delete_question_from_quiz(
 
 
 async def test_add_question_to_quiz(
-        db_session: AsyncSession,
-        create_test_users,
-        create_test_quizzes,
-        create_test_companies,
-        quiz_service: QuizService
+    db_session: AsyncSession,
+    create_test_users,
+    create_test_quizzes,
+    create_test_companies,
+    quiz_service: QuizService
 ):
     user = create_test_users[0]
     quiz = create_test_quizzes[0]

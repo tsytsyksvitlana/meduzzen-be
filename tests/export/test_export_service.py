@@ -18,32 +18,35 @@ async def test_export_quiz_results_for_company(
     mock_redis,
     event_loop
 ):
-    user = create_test_users[0]
-    quiz = create_test_quizzes[0]
-    company_id = quiz.company_id
-    quiz_id = quiz.id
+    async def test():
+        user = create_test_users[0]
+        quiz = create_test_quizzes[0]
+        company_id = quiz.company_id
+        quiz_id = quiz.id
 
-    mock_participation_data = [
-        json.dumps({
-            "user_id": user.id,
-            "company_id": quiz.company_id,
-            "quiz_id": quiz_id,
-            "total_questions": 8,
-            "correct_answers": 100,
-            "score_percentage": 80,
-        })
-    ]
+        mock_participation_data = [
+            json.dumps({
+                "user_id": user.id,
+                "company_id": quiz.company_id,
+                "quiz_id": quiz_id,
+                "total_questions": 8,
+                "correct_answers": 100,
+                "score_percentage": 80,
+            })
+        ]
 
-    mock_redis.lrange.return_value = mock_participation_data
+        mock_redis.lrange.return_value = mock_participation_data
 
-    results = await export_service.export_quiz_results_for_company(
-        quiz_id, company_id, current_user=user, export_format="json"
-    )
+        results = await export_service.export_quiz_results_for_company(
+            quiz_id, company_id, current_user=user, export_format="json"
+        )
 
-    assert isinstance(results, FileResponse)
+        assert isinstance(results, FileResponse)
 
-    assert "Content-Disposition" in results.headers
-    assert "quiz_1_company_1_results.json" in results.headers["Content-Disposition"]
+        assert "Content-Disposition" in results.headers
+        assert "quiz_1_company_1_results.json" in results.headers["Content-Disposition"]
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(test())
 
 
 @pytest.mark.asyncio
