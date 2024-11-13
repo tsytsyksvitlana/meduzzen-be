@@ -294,7 +294,7 @@ async def create_test_quiz_participations(db_session, create_test_users, create_
             "user_id": user.id,
             "score": 7,
             "total_questions": 10,
-            "participated_at": datetime(2024, 9, 10),
+            "participated_at": datetime(2024, 9, 5),
             "company_id": quiz_2.company_id,
         },
     ]

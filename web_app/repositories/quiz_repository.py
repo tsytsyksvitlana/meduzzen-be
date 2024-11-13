@@ -13,3 +13,8 @@ class QuizRepository(BaseRepository[Quiz]):
         query = select(Quiz).filter(Quiz.company_id == company_id).offset(skip).limit(limit)
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def get_all_objs(self):
+        query = select(Quiz)
+        result = await self.session.execute(query)
+        return result.scalars().all()
