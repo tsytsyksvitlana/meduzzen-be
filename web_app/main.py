@@ -2,6 +2,8 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -42,8 +44,11 @@ from web_app.routers.notifications import router as notifications_router
 from web_app.routers.quiz_results import router as quiz_results_router
 from web_app.routers.quizzes import router as quizzes_router
 from web_app.routers.users import router as users_router
+from web_app.tasks.notifications import task_notify_inactive_users
 
 logger = logging.getLogger(__name__)
+
+scheduler = AsyncIOScheduler()
 
 
 @asynccontextmanager
@@ -54,7 +59,14 @@ async def lifespan(app: FastAPI):
     await redis_helper.redis.ping()
     logger.info("Redis connected.")
 
+    scheduler.start()
+    logger.info("Scheduler started.")
+    scheduler.add_job(task_notify_inactive_users, CronTrigger(hour=0, minute=0))
+
     yield
+
+    scheduler.shutdown()
+    logger.info("Scheduler shutdown.")
 
     await redis_helper.close()
     logger.info("Redis connection closed.")
