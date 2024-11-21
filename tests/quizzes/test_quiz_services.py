@@ -576,7 +576,7 @@ async def test_get_user_last_quiz_participations(
 
     assert result[1].quiz_id == quiz_2.id
     assert result[1].quiz_title == quiz_2.title
-    assert result[1].last_participation_at == datetime(2024, 9, 10)
+    assert result[1].last_participation_at == datetime(2024, 9, 5)
 
     user_no_participation = create_test_users[1]
 

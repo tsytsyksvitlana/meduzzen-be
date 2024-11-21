@@ -41,3 +41,11 @@ class QuizParticipationRepository(BaseRepository[QuizParticipation]):
         )
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def get_last_participation(self, user_id: int, quiz_id: int):
+        result = await self.session.execute(
+            select(QuizParticipation)
+            .where(QuizParticipation.user_id == user_id, QuizParticipation.quiz_id == quiz_id)
+            .order_by(QuizParticipation.participated_at.desc())
+        )
+        return result.scalars().first()
