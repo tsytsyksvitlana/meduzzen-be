@@ -1,4 +1,4 @@
-FROM python:3.12 AS builder
+FROM python:3.12-slim AS build
 
 RUN pip install poetry==1.8.0
 
@@ -20,7 +20,7 @@ ENV VIRTUAL_ENV=/code/.venv \
 
 WORKDIR /code
 
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+COPY --from=build ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 COPY web_app /code/web_app
 
 RUN apt-get update && apt-get install -y python3-dotenv && rm -rf /var/lib/apt/lists/*

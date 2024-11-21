@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up...")
     setup_logger(settings.fastapi.ENV_MODE)
 
-    # await redis_helper.redis.ping()
+    await redis_helper.redis.ping()
     logger.info("Redis connected.")
 
     scheduler.start()
@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
     logger.info("Scheduler shutdown.")
 
-    # await redis_helper.close()
+    await redis_helper.close()
     logger.info("Redis connection closed.")
 
 
