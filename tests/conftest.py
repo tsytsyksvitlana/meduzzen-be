@@ -39,7 +39,7 @@ from web_app.repositories.quiz_repository import QuizRepository
 from web_app.repositories.user_answer_repository import UserAnswerRepository
 from web_app.schemas.notification import NotificationStatus
 from web_app.schemas.quiz import AnswerCreate, QuestionCreate, QuizCreate
-from web_app.services.export.export_service import ExportService
+from web_app.services.export_data.export_service import ExportService
 from web_app.services.quizzes.quiz_service import QuizService
 from web_app.utils.password_manager import PasswordManager
 

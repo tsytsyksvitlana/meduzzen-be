@@ -23,9 +23,9 @@ class QuizCreate(BaseModel):
 
 
 class QuizUpdate(BaseModel):
-    title: str
-    description: str
-    participation_frequency: int
+    title: str | None
+    description: str | None
+    participation_frequency: int | None
 
 
 class UserAnswerSchema(BaseModel):
