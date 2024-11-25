@@ -1,11 +1,15 @@
 import io
+import logging
 
 import pandas as pd
-from fastapi import Depends, HTTPException, UploadFile
+from fastapi import Depends, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.db.postgres_helper import postgres_helper as pg_helper
-from web_app.exceptions.application import BadRequestException, ApplicationErrorException
+from web_app.exceptions.application import (
+    ApplicationErrorException,
+    BadRequestException
+)
 from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import User
 from web_app.repositories.answer_repository import AnswerRepository
@@ -23,6 +27,8 @@ from web_app.schemas.quiz import (
     QuizUpdate
 )
 from web_app.services.quizzes.quiz_service import QuizService
+
+logger = logging.getLogger(__name__)
 
 
 class ImportService(QuizService):
@@ -75,6 +81,9 @@ class ImportService(QuizService):
                 await self._import_or_update_quiz(
                     quiz_row, questions_df, answers_df, current_user
                 )
+
+            await self._import_or_update_questions(questions_df, answers_df)
+
             return {"detail": "Import successful."}
         except Exception as e:
             raise ApplicationErrorException(f"Error processing file: {str(e)}")
@@ -84,27 +93,29 @@ class ImportService(QuizService):
     ):
         quiz = await self.quiz_repository.get_obj_by_id(quiz_row["quiz_id"])
 
-        quiz_data = {
-            "title": quiz_row["title"]
-            if pd.notna(quiz_row["title"])
-            else (quiz.title if quiz else None),
-            "description": quiz_row["description"]
+        title = quiz_row["title"] if pd.notna(quiz_row["title"]) else (quiz.title if quiz else None)
+        description = (
+            quiz_row["description"]
             if pd.notna(quiz_row["description"])
-            else (quiz.description if quiz else None),
-            "participation_frequency": int(quiz_row["participation_frequency"])
+            else (quiz.description if quiz else None)
+        )
+        participation_frequency = (
+            int(quiz_row["participation_frequency"])
             if pd.notna(quiz_row["participation_frequency"])
-            else (quiz.participation_frequency if quiz else None),
-            "company_id": int(quiz_row["company_id"]),
+            else (quiz.participation_frequency if quiz else None)
+        )
+        company_id = int(quiz_row["company_id"])
+
+        quiz_data = {
+            "title": title,
+            "description": description,
+            "participation_frequency": participation_frequency,
+            "company_id": company_id,
         }
 
         if quiz is None:
-            if not all(
-                [
-                    quiz_data["title"],
-                    quiz_data["description"],
-                    quiz_data["participation_frequency"],
-                ]
-            ):
+            required_fields = ["title", "description", "participation_frequency"]
+            if not all(quiz_data.get(field) for field in required_fields):
                 raise InvalidFieldException(
                     f"Missing required fields for creating quiz {quiz_row['quiz_id']}."
                 )
@@ -126,26 +137,40 @@ class ImportService(QuizService):
             quiz.id, quiz_update, current_user=current_user
         )
 
-    def _parse_questions(self, questions_df, answers_df, quiz_id):
+    async def _import_or_update_questions(self, questions_df, answers_df):
         questions = []
-        for _, question_row in questions_df[
-            questions_df["quiz_id"] == quiz_id
-        ].iterrows():
-            answers = [
-                AnswerCreate(
-                    text=answer_row["text"], is_correct=answer_row["is_correct"]
-                )
-                for _, answer_row in answers_df[
-                    answers_df["question_id"] == question_row["question_id"]
-                ].iterrows()
-            ]
-            question = QuestionCreate(
-                id=question_row["question_id"],
-                title=question_row["title"],
-                answers=answers,
-            )
-            questions.append(question)
+        for _, question_row in questions_df.iterrows():
+            questions.append(await self._process_question_and_answers(question_row, answers_df))
         return questions
+
+    async def _parse_questions(self, questions_df, answers_df, quiz_id):
+        questions = []
+        relevant_questions = questions_df[questions_df["quiz_id"] == quiz_id]
+        for _, question_row in relevant_questions.iterrows():
+            questions.append(await self._process_question_and_answers(question_row, answers_df))
+        return questions
+
+    async def _process_question_and_answers(self, question_row, answers_df):
+        question_id = question_row["question_id"]
+        question = await self.question_repository.get_obj_by_id(question_id)
+
+        title = question_row["title"]
+        if question:
+            if title and question.title != title:
+                question.title = title
+                await self.question_repository.update_obj(question)
+                await self.question_repository.session.commit()
+                await self.question_repository.session.refresh(question)
+
+        answers = [
+            AnswerCreate(
+                text=answer_row["text"],
+                is_correct=answer_row["is_correct"],
+            )
+            for _, answer_row in answers_df[answers_df["question_id"] == question_id].iterrows()
+        ]
+
+        return QuestionCreate(id=question_id, title=title, answers=answers)
 
 
 def get_import_service(
