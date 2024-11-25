@@ -5,7 +5,7 @@ import pytest
 from fastapi.responses import FileResponse
 
 from web_app.exceptions.permission import PermissionDeniedException
-from web_app.services.export.export_service import ExportService
+from web_app.services.export_data.export_service import ExportService
 
 pytestmark = pytest.mark.anyio
 

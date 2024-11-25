@@ -136,9 +136,12 @@ class QuizService:
 
         await self.check_is_owner_or_admin(quiz.company_id, current_user)
 
-        quiz.title = quiz_data.title
-        quiz.description = quiz_data.description
-        quiz.participation_frequency = quiz_data.participation_frequency
+        if quiz_data.title is not None:
+            quiz.title = quiz_data.title
+        if quiz_data.description is not None:
+            quiz.description = quiz_data.description
+        if quiz_data.participation_frequency is not None:
+            quiz.participation_frequency = quiz_data.participation_frequency
 
         await self.quiz_repository.update_obj(quiz)
         await self.quiz_repository.session.commit()
