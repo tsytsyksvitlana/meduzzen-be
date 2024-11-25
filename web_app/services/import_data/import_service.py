@@ -5,6 +5,8 @@ from fastapi import Depends, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web_app.db.postgres_helper import postgres_helper as pg_helper
+from web_app.exceptions.application import BadRequestException, ApplicationErrorException
+from web_app.exceptions.validation import InvalidFieldException
 from web_app.models import User
 from web_app.repositories.answer_repository import AnswerRepository
 from web_app.repositories.company_membership_repository import (
@@ -53,9 +55,8 @@ class ImportService(QuizService):
             file.content_type
             != "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ):
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid file type. Please upload an Excel file.",
+            raise BadRequestException(
+                "Invalid file type. Please upload an Excel file.",
             )
 
         try:
@@ -71,16 +72,12 @@ class ImportService(QuizService):
             )
 
             for _, quiz_row in quizzes_df.iterrows():
-                quiz = await self._import_or_update_quiz(
+                await self._import_or_update_quiz(
                     quiz_row, questions_df, answers_df, current_user
                 )
-                print(f"Processed quiz: {quiz.title if quiz else 'Unknown'}")
-
             return {"detail": "Import successful."}
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Error processing file: {str(e)}"
-            )
+            raise ApplicationErrorException(f"Error processing file: {str(e)}")
 
     async def _import_or_update_quiz(
         self, quiz_row, questions_df, answers_df, current_user
@@ -108,12 +105,8 @@ class ImportService(QuizService):
                     quiz_data["participation_frequency"],
                 ]
             ):
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"Missing required fields for creating quiz "
-                        f"{quiz_row['quiz_id']}."
-                    ),
+                raise InvalidFieldException(
+                    f"Missing required fields for creating quiz {quiz_row['quiz_id']}."
                 )
 
             quiz_create = QuizCreate(
